@@ -4,3 +4,5 @@ requests
 mistralai
 cohere
 openai
+dotenv
+pydantic
