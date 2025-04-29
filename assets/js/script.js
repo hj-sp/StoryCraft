@@ -22,7 +22,7 @@ async function searchExample() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/searchExample', {
+        const response = await fetch('https://storycraft-backend.onrender.com/searchExample/searchExample', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ async function mistralRewrite() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/mistralRewrite', {
+        const response = await fetch('https://storycraft-backend.onrender.com/mistralRewrite', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ async function changeStyle(exampleId) {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/gptStyleChange', {
+        const response = await fetch('https://storycraft-backend.onrender.com/gptStyleChange', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: selectedText, style: style }),
@@ -158,7 +158,7 @@ async function summarizeText() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/summary', {
+        const response = await fetch('https://storycraft-backend.onrender.com/summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -191,7 +191,7 @@ async function expandText() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/expand', {
+        const response = await fetch('https://storycraft-backend.onrender.com/expand', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -229,7 +229,7 @@ async function mistralGrammar() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/mistralGrammar', {
+        const response = await fetch('https://storycraft-backend.onrender.com/mistralGrammar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -319,7 +319,7 @@ async function cohereHonorific() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/cohereHonorific', {
+        const response = await fetch('https://storycraft-backend.onrender.com/cohereHonorific', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -357,7 +357,7 @@ async function cohereInformal() {
     }
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/cohereInformal', {
+        const response = await fetch('https://storycraft-backend.onrender.com/cohereInformal', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
