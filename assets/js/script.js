@@ -22,7 +22,7 @@ async function searchExample() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/searchExample/searchExample', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/searchExample', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ async function mistralRewrite() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/mistralRewrite', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/mistralRewrite', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ async function changeStyle(exampleId) {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/gptStyleChange', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/gptStyleChange', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: selectedText, style: style }),
@@ -158,7 +158,7 @@ async function summarizeText() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/summary', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -191,7 +191,7 @@ async function expandText() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/expand', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/expand', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -229,7 +229,7 @@ async function mistralGrammar() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/mistralGrammar', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/mistralGrammar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -319,7 +319,7 @@ async function cohereHonorific() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/cohereHonorific', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/cohereHonorific', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -357,7 +357,7 @@ async function cohereInformal() {
     }
 
     try {
-        const response = await fetch('https://storycraft-backend.onrender.com/cohereInformal', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/cohereInformal', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
