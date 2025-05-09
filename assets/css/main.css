@@ -33,9 +33,28 @@ td {
 }
 
 .highlight-particle {
-    border-bottom: 2px dotted green;
+    background-color: #d8f3dc;
 }
 
+.highlight-extended {
+    background-color: #caf0f8;
+}
+
+.highlight-synonym {
+    background-color: #fef9c3;
+}
+
+.highlight-formal {
+    background-color: #fde2e2;
+}
+
+.highlight-added {
+    background-color: #e0f7fa;
+}
+.highlight-space {
+    background-color: #fff0f6;
+    border-bottom: 1px dashed #f50057;
+}
 .highlight-general {
     background-color: #fff3b0;
     border-radius: 4px;
@@ -47,6 +66,17 @@ td {
     border-radius: 4px;
     padding: 0 2px;
     cursor: help;
+}
+.style-add {
+    background-color: #fff3cd;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.style-edit {
+    background-color: #d1ecf1;
+    padding: 0 2px;
+    border-radius: 2px;
 }
 
 #grammarTable td.right {
@@ -162,6 +192,9 @@ td {
     width: 100%;
     border-radius: 10px;
     border: groove 2px #a6aaff;
+}
+.pdfScanFileChooseBtn_SC {
+    margin: 10px;
 }
 
 /**
@@ -2124,6 +2157,6 @@ section,
 /*--------------------------------------------------------------
 # Starter Section Section
 --------------------------------------------------------------*/
-.starter-section {
-    /* Add your styles here */
-}
+/* .starter-section { */
+/* Add your styles here */
+/* } */

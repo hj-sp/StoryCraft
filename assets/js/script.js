@@ -10,9 +10,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (grammarBtn) {
         grammarBtn.addEventListener('click', mistralGrammar);
     }
-    const pdfScanBtn = document.getElementById('pdfScanBtn');
-    if (pdfScanBtn) {
-        pdfScanBtn.addEventListener('click', pdfScan);
+    const pdfScanGrammarBtn = document.getElementById('pdfScanGrammarBtn');
+    if (pdfScanGrammarBtn) {
+        pdfScanGrammarBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanGrammar();
+        });
+    }
+    const pdfScanStyleBtn = document.getElementById('pdfScanStyleBtn');
+    if (pdfScanStyleBtn) {
+        pdfScanStyleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanStyle();
+        });
+    }
+    const pdfScanHonorificBtn = document.getElementById('pdfScanHonorificBtn');
+    if (pdfScanHonorificBtn) {
+        pdfScanHonorificBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanHonorific();
+        });
+    }
+    const pdfScanInformalBtn = document.getElementById('pdfScanInformalBtn');
+    if (pdfScanInformalBtn) {
+        pdfScanInformalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanInformal();
+        });
     }
 });
 
@@ -377,119 +401,273 @@ async function cohereInformal() {
     }
 }
 
-async function pdfScan() {
+async function pdfScanGrammar() {
     const form = document.getElementById('uploadForm');
+    const grammarTable = document.getElementById('grammarTable');
+    if (grammarTable) {
+        grammarTable.style.visibility = 'visible';
+    }
     const tbody = document.querySelector('tbody');
+    if (!tbody) {
+        console.error('grammarTable 내부에 tbody가 없습니다.');
+        return;
+    }
 
-    form.addEventListener('submit', async function (e) {
-        e.preventDefault();
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
 
-        const fileInput = document.getElementById('pdfFile');
-        const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('pdf', file);
 
-        const formData = new FormData();
-        formData.append('pdf', file);
+    const resultArea = document.getElementById('resultArea');
 
-        const resultArea = document.getElementById('resultArea');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const grammarOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 grammarOriginalText를 가지고 두 번째 fetch
+        const grammarResponse = await fetch(
+            'http://127.0.0.1:8000/mistralGrammar',
+            {
                 method: 'POST',
-                body: formData,
-            });
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: grammarOriginalText }),
+            }
+        );
 
-            const result = await response.json();
-            console.log('Success:', result.text);
+        const grammarData = await grammarResponse.json();
+        console.log('Grammar Check Result:', grammarData.result);
 
-            const grammarOriginalText =
-                result.text || '[텍스트를 추출하지 못했습니다]';
-            // resultArea.textContent = grammarOriginalText;
+        const text = grammarData.result;
 
-            // 이 시점에서 grammarOriginalText를 가지고 두 번째 fetch
-            const grammarResponse = await fetch(
-                'http://127.0.0.1:8000/mistralGrammar',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ content: grammarOriginalText }),
-                }
-            );
+        if (text) {
+            const lines = text
+                .split(/\n+/)
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0); // 여기서 빈 줄 제거됨
 
-            const grammarData = await grammarResponse.json();
-            console.log('Grammar Check Result:', grammarData.result);
+            const table = document.getElementById('grammarTable');
 
-            const text = grammarData.result;
+            function removeIcons(text) {
+                // 이모지 제거
+                return text.replace(/^[^\w가-힣]+/, '').trim();
+            }
 
-            if (text) {
-                const lines = text
-                    .split(/\n+/)
-                    .map((line) => line.trim())
-                    .filter((line) => line.length > 0); // 여기서 빈 줄 제거됨
+            let hasError = false; // 틀린 문장이 하나라도 발견되었음을 기록
 
-                const table = document.getElementById('grammarTable');
+            for (let i = 0; i < lines.length; i += 4) {
+                const cleanLine1 = removeIcons(lines[i]);
+                const cleanLine2 = removeIcons(lines[i + 1]);
 
-                function removeIcons(text) {
-                    // 이모지 제거
-                    return text.replace(/^[^\w가-힣]+/, '').trim();
+                if (cleanLine1 === cleanLine2) {
+                    // 맞는 문장이면 기록하지 않고 넘어감
+                    continue;
                 }
 
-                let hasError = false; // 틀린 문장이 하나라도 발견되었음을 기록
+                hasError = true;
 
-                for (let i = 0; i < lines.length; i += 4) {
-                    const cleanLine1 = removeIcons(lines[i]);
-                    const cleanLine2 = removeIcons(lines[i + 1]);
+                const row = document.createElement('tr');
 
-                    if (cleanLine1 === cleanLine2) {
-                        // 맞는 문장이면 기록하지 않고 넘어감
-                        continue;
-                    }
+                const tdLeft = document.createElement('td');
+                const tdRight = document.createElement('td');
+                tdRight.classList.add('right');
 
-                    hasError = true;
+                // ❌문장 vs ✅문장 비교 및 하이라이트
+                const [highlightedWrong, highlightedCorrect] =
+                    highlightDifference(lines[i], lines[i + 1]);
 
-                    const row = document.createElement('tr');
-
-                    const tdLeft = document.createElement('td');
-                    const tdRight = document.createElement('td');
-                    tdRight.classList.add('right');
-
-                    // ❌문장 vs ✅문장 비교 및 하이라이트
-                    const [highlightedWrong, highlightedCorrect] =
-                        highlightDifference(lines[i], lines[i + 1]);
-
-                    // 하이라이트된 결과를 tdLeft에 innerHTML로 삽입
-                    tdLeft.innerHTML = `
+                // 하이라이트된 결과를 tdLeft에 innerHTML로 삽입
+                tdLeft.innerHTML = `
                     <div class="sentence"> ${highlightedWrong}</div>
                     <div class="sentence"> ${highlightedCorrect}</div>
                 `;
 
-                    // tdRight는 기존처럼 규칙 설명 출력
-                    tdRight.textContent = lines[i + 2] + '\n' + lines[i + 3];
+                // tdRight는 기존처럼 규칙 설명 출력
+                tdRight.textContent = lines[i + 2] + '\n' + lines[i + 3];
 
-                    row.appendChild(tdLeft);
-                    row.appendChild(tdRight);
-                    tbody.appendChild(row);
-                }
-
-                if (!hasError) {
-                    alert('🎉 틀린 부분이 없습니다.');
-                }
-            } else if (data.error) {
-                resultArea.innerText = `⚠️ 오류: ${
-                    data.error
-                }\n\n🔍 상세 내용: ${data.detail || '없음'}`;
-                console.error('에러 응답 내용:', data);
-            } else {
-                resultArea.innerText = '⚠️ 알 수 없는 오류가 발생했습니다.';
-                console.warn('예상치 못한 응답 구조:', data);
+                row.appendChild(tdLeft);
+                row.appendChild(tdRight);
+                tbody.appendChild(row);
             }
-        } catch (error) {
-            console.error('Error:', error);
-            resultArea.textContent =
-                '[에러 발생: PDF를 처리하거나 문법 점검에 실패했습니다]';
+
+            if (!hasError) {
+                alert('🎉 틀린 부분이 없습니다.');
+            }
+        } else if (data.error) {
+            resultArea.innerText = `⚠️ 오류: ${data.error}\n\n🔍 상세 내용: ${
+                data.detail || '없음'
+            }`;
+            console.error('에러 응답 내용:', data);
+        } else {
+            resultArea.innerText = '⚠️ 알 수 없는 오류가 발생했습니다.';
+            console.warn('예상치 못한 응답 구조:', data);
         }
-    });
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 문법 점검에 실패했습니다]';
+    }
+}
+
+async function pdfScanStyle() {
+    const form = document.getElementById('uploadForm');
+    const style = document.getElementById('styleSelect').value;
+    const grammarTable = document.getElementById('grammarTable');
+    grammarTable.style.visibility = 'hidden';
+
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    const resultArea = document.getElementById('resultArea');
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const styleOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 styleOriginalText를 가지고 두 번째 fetch
+        const styleResponse = await fetch(
+            'http://127.0.0.1:8000/gptStyleChange',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: styleOriginalText,
+                    style: style,
+                }),
+            }
+        );
+
+        const styleData = await styleResponse.json();
+        console.log('Style Change Result:', styleData.styled_text);
+
+        const text = styleData.styled_text;
+        resultArea.innerText = text;
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 문체 변경에 실패했습니다]';
+    }
+}
+
+async function pdfScanHonorific() {
+    const form = document.getElementById('uploadForm');
+    const grammarTable = document.getElementById('grammarTable');
+    grammarTable.style.visibility = 'hidden';
+
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    const resultArea = document.getElementById('resultArea');
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const honorificOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 honorificOriginalText를 가지고 두 번째 fetch
+        const honorificResponse = await fetch(
+            'http://127.0.0.1:8000/cohereHonorific',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: honorificOriginalText }),
+            }
+        );
+
+        const honorificData = await honorificResponse.json();
+        console.log('Honorific Result:', honorificData.result);
+
+        const text = honorificData.result;
+        resultArea.innerText = text;
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 높임말 변환에 실패했습니다]';
+    }
+}
+
+async function pdfScanInformal() {
+    const form = document.getElementById('uploadForm');
+    const grammarTable = document.getElementById('grammarTable');
+    grammarTable.style.visibility = 'hidden';
+
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    const resultArea = document.getElementById('resultArea');
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const informalOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 honorificOriginalText를 가지고 두 번째 fetch
+        const informalResponse = await fetch(
+            'http://127.0.0.1:8000/cohereInformal',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: informalOriginalText }),
+            }
+        );
+
+        const informalData = await informalResponse.json();
+        console.log('Informal Result:', informalData.result);
+
+        const text = informalData.result;
+        resultArea.innerText = text;
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 반말 변환에 실패했습니다]';
+    }
 }
 
 function highlightDifference(a, b) {
@@ -527,84 +705,51 @@ function highlightDifference(a, b) {
 }
 
 function highlightDiffWithType(original, revised) {
-    const particles = [
-        '은',
-        '는',
-        '이',
-        '가',
-        '을',
-        '를',
-        '에',
-        '에서',
-        '으로',
-        '로',
-        '와',
-        '과',
-        '도',
-        '만',
-        '까지',
-    ];
+    const dmp = new diff_match_patch();
+    const diffs = dmp.diff_main(original, revised);
+    dmp.diff_cleanupSemantic(diffs);
+
     const result = [];
 
-    let i = 0;
-    let j = 0;
+    for (let i = 0; i < diffs.length; i++) {
+        const [op, text] = diffs[i];
 
-    while (i < original.length && j < revised.length) {
-        if (original[i] === revised[j]) {
-            result.push(revised[j]);
-            i++;
-            j++;
-        } else {
-            // 변경 시작 지점
-            const startJ = j;
+        if (op === 0) {
+            result.push(text);
+        } else if (op === -1 && diffs[i + 1] && diffs[i + 1][0] === 1) {
+            const addedText = diffs[i + 1][1];
+            const deletedText = text;
 
-            // 변경된 글자 블록 찾기
-            while (
-                i < original.length &&
-                j < revised.length &&
-                original[i] !== revised[j]
-            ) {
-                i++;
-                j++;
-            }
-
-            const changed = revised.slice(startJ, j);
-            let cssClass = 'style-highlight';
+            let cssClass = 'highlight-edit';
             let tip = '표현이 바뀌었어요';
 
-            if (changed.includes(' ')) {
-                cssClass = 'highlight-space';
-                tip = '띄어쓰기를 고쳤어요';
-            } else if (
-                particles.some(
-                    (p) => changed.trim() === p || changed.trim().endsWith(p)
+            if (
+                /^(은|는|이|가|을|를|에|에서|으로|로|와|과|도|만|까지)$/.test(
+                    deletedText.trim()
                 )
             ) {
                 cssClass = 'highlight-particle';
-                tip = '조사를 문맥에 맞게 바꾸었어요';
+                tip = '조사가 문맥에 맞게 바뀌었어요';
+            } else if (addedText.length > deletedText.length + 10) {
+                cssClass = 'highlight-extended';
+                tip = '내용을 더 풍부하게 풀어냈어요';
+            } else if (deletedText.length === addedText.length) {
+                cssClass = 'highlight-synonym';
+                tip = '같은 뜻을 더 적절한 말로 바꾸었어요';
+            } else {
+                cssClass = 'highlight-formal';
+                tip = '글 흐름에 더 어울리는 표현으로 바뀌었어요';
             }
-
             result.push(
-                `<span class="${cssClass}" title="${tip}">${changed}</span>`
+                `<span class="${cssClass}" title="${tip}">${addedText}</span>`
+            );
+            i++; // skip next
+        } else if (op === 1) {
+            result.push(
+                `<span class="highlight-added" title="새로 추가된 표현">${text}</span>`
             );
         }
     }
 
-    // revised에 남은 텍스트 처리
-    if (j < revised.length) {
-        const remain = revised.slice(j);
-        result.push(
-            `<span class="style-highlight" title="새로 추가된 표현">${remain}</span>`
-        );
-    }
-
     return result.join('');
-}
-
-function sentenceSimilarity(a, b) {
-    const aWords = new Set(a.split(' '));
-    const bWords = new Set(b.split(' '));
-    const intersection = [...aWords].filter((w) => bWords.has(w)).length;
-    const union = new Set([...aWords, ...bWords]).size;
-    return intersection / union;
 }

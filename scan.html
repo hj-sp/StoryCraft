@@ -101,17 +101,87 @@
                                 id="pdfFile"
                                 name="pdf"
                                 accept="application/pdf"
+                                class="pdfScanFileChooseBtn_SC"
                             />
-                            <button id="pdfScanBtn" type="submit">
-                                업로드
-                            </button>
+                            <div>
+                                <label for="styleSelect">문체 선택:</label>
+                                <select id="styleSelect">
+                                    <option value="casual">구어체</option>
+                                    <option value="formal">격식체</option>
+                                    <option value="literary">문학체</option>
+                                    <option value="academic">학술체</option>
+                                </select>
+                                <button
+                                    id="pdfScanStyleBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="style"
+                                    class="resultBtn_SC"
+                                >
+                                    문체 변경
+                                </button>
+                                <button
+                                    id="pdfScanRewriteBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="rewrite"
+                                    class="resultBtn_SC"
+                                >
+                                    첨삭
+                                </button>
+                                <button
+                                    id="pdfScanSummaryBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="summary"
+                                    class="resultBtn_SC"
+                                >
+                                    요약
+                                </button>
+                                <button
+                                    id="pdfScanExpandrBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="expand"
+                                    class="resultBtn_SC"
+                                >
+                                    확장
+                                </button>
+                                <button
+                                    id="pdfScanGrammarBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="grammar"
+                                    class="resultBtn_SC"
+                                >
+                                    문법 교정
+                                </button>
+                                <button
+                                    id="pdfScanHonorificBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="honorific"
+                                    class="resultBtn_SC"
+                                >
+                                    경어체
+                                </button>
+                                <button
+                                    id="pdfScanInformalBtn"
+                                    type="submit"
+                                    name="action"
+                                    value="informal"
+                                    class="resultBtn_SC"
+                                >
+                                    평어체
+                                </button>
+                            </div>
                         </form>
                         <div
                             id="resultArea"
                             class="resultArea_SC"
                             style="text-align: left"
                         >
-                            <table id="grammarTable">
+                            <table id="grammarTable" style="visibility: hidden">
                                 <thead>
                                     <tr>
                                         <th>원문&교정문</th>

@@ -210,7 +210,7 @@ async def mistral_grammar(content: TextInput):
 async def cohere_honorific(content: TextInput):
     co = cohere.ClientV2(COHERE_API_KEY)  # API 키
 
-    user_prompt = f"{content.content}\n\n이 글에서 ~습니다. 처럼 높임말로 바꿔줘."
+    user_prompt = f"{content.content}\n\n이 글에서 ~습니다. 처럼 높임말로 바꿔줘. 그리고 결과는 딱 글만 나오게 해줘."
 
     response = co.chat(
         model="command-a-03-2025",
@@ -226,7 +226,7 @@ async def cohere_honorific(content: TextInput):
 async def cohere_honorific(content: TextInput):
     co = cohere.ClientV2(COHERE_API_KEY)  # API 키
 
-    user_prompt = f"{content.content}\n\n이 글에서 ~했어. 처럼 반말체로 바꿔줘."
+    user_prompt = f"{content.content}\n\n이 글에서 ~했어. 처럼 반말체로 바꿔줘. 그리고 결과는 딱 글만 나오게 해줘."
 
     response = co.chat(
         model="command-a-03-2025",
@@ -255,6 +255,4 @@ async def upload_pdf(pdf: UploadFile = File(...)):
     except Exception as e:
         return {"error": f"PDF 처리 중 오류 발생: {str(e)}"}
 
-    testText = "test"  # 테스트 코드
-
-    return {"filename": pdf.filename, "text": extracted_text.strip(), "testText": testText}
+    return {"filename": pdf.filename, "text": extracted_text.strip()}
