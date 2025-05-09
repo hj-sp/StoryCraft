@@ -720,7 +720,7 @@ function highlightDiffWithType(original, revised) {
             const addedText = diffs[i + 1][1];
             const deletedText = text;
 
-            let cssClass = 'highlight-edit';
+            let cssClass = 'tooltip-wrapper highlight-edit';
             let tip = '표현이 바뀌었어요';
 
             if (
@@ -728,26 +728,33 @@ function highlightDiffWithType(original, revised) {
                     deletedText.trim()
                 )
             ) {
-                cssClass = 'highlight-particle';
-                tip = '조사가 문맥에 맞게 바뀌었어요';
+                cssClass = 'tooltip-wrapper highlight-particle';
+                tip = '조사를 문맥에 더 잘 맞게 다듬었어요';
             } else if (addedText.length > deletedText.length + 10) {
-                cssClass = 'highlight-extended';
-                tip = '내용을 더 풍부하게 풀어냈어요';
+                cssClass = 'tooltip-wrapper highlight-extended';
+                tip = '생각을 더 풍부하게 풀어냈어요';
             } else if (deletedText.length === addedText.length) {
-                cssClass = 'highlight-synonym';
-                tip = '같은 뜻을 더 적절한 말로 바꾸었어요';
+                cssClass = 'tooltip-wrapper highlight-synonym';
+                tip = '같은 뜻을 더 적절한 말로 바꿨어요';
             } else {
-                cssClass = 'highlight-formal';
-                tip = '글 흐름에 더 어울리는 표현으로 바뀌었어요';
+                cssClass = 'tooltip-wrapper highlight-formal';
+                tip = '글 흐름에 더 어울리는 표현이에요';
             }
-            result.push(
-                `<span class="${cssClass}" title="${tip}">${addedText}</span>`
-            );
-            i++; // skip next
+
+            result.push(`
+                <span class="${cssClass}">
+                    ${addedText}
+                    <span class="custom-tooltip">${tip}</span>
+                </span>
+            `);
+            i++;
         } else if (op === 1) {
-            result.push(
-                `<span class="highlight-added" title="새로 추가된 표현">${text}</span>`
-            );
+            result.push(`
+                <span class="tooltip-wrapper highlight-added">
+                    ${text}
+                    <span class="custom-tooltip">새로 추가된 표현이에요</span>
+                </span>
+            `);
         }
     }
 
