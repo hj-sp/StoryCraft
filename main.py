@@ -15,8 +15,8 @@ from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from PyPDF2 import PdfReader
 import tempfile
-import urllib.parse
 from google.cloud import translate_v2 as google_translate
+import re
 
 
 load_dotenv()
@@ -111,7 +111,8 @@ async def gpt_style_change(request: Request):
         completion = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "너는 문체를 변환하는 전문 AI 어시스턴트야. 문체 변경시 비속어는 사용하지 마."},
+                {"role": "system",
+                    "content": "너는 문체를 변환하는 전문 AI 어시스턴트야. 문체 변경시 비속어는 사용하지 마."},
                 {"role": "user", "content": full_prompt}
             ],
             temperature=0.7
@@ -292,4 +293,7 @@ async def upload_pdf(pdf: UploadFile = File(...)):
     except Exception as e:
         return {"error": f"PDF 처리 중 오류 발생: {str(e)}"}
 
-    return {"filename": pdf.filename, "text": extracted_text.strip()}
+    # 온점 앞의 띄어쓰기 제거
+    cleaned_text = re.sub(r" (?=\.)", "", extracted_text)
+
+    return {"filename": pdf.filename, "text": cleaned_text.strip()}
