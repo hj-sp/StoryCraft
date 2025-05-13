@@ -223,6 +223,11 @@ td {
 .pdfScanFileChooseBtn_SC {
     margin: 10px;
 }
+.resultAreaPdfDownloadBtn_SC {
+    width: auto; 
+    padding-inline: 10px;
+    margin-top: 10px;
+}
 
 /**
 * Template Name: Bikin
@@ -2187,3 +2192,4 @@ section,
 /* .starter-section { */
 /* Add your styles here */
 /* } */
+

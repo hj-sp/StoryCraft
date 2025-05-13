@@ -42,12 +42,12 @@
         <link href="assets/css/main.css" rel="stylesheet" />
 
         <!-- =======================================================
-* Template Name: Bikin
-* Template URL: https://bootstrapmade.com/bikin-free-simple-landing-page-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-======================================================== -->
+  * Template Name: Bikin
+  * Template URL: https://bootstrapmade.com/bikin-free-simple-landing-page-template/
+  * Updated: Aug 07 2024 with Bootstrap v5.3.3
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
     </head>
 
     <body class="index-page">
@@ -73,12 +73,14 @@
                         <li><a href="index.html#services">Services</a></li>
                         <li><a href="search.html">Search</a></li>
                         <li><a href="rewrite.html">Rewrite</a></li>
-                        <li>
-                            <a href="change-style.html" class="active">Style</a>
-                        </li>
+                        <li><a href="change-style.html">Style</a></li>
                         <li><a href="grammar.html">Grammar</a></li>
                         <li><a href="honorific.html">Honorific</a></li>
-                        <li><a href="translate.html">Translate</a></li>
+                        <li>
+                            <a href="translate.html" class="active"
+                                >Translate</a
+                            >
+                        </li>
                         <li><a href="scan.html">Scan</a></li>
                         <li><a href="index.html#faq">FAQ</a></li>
                     </ul>
@@ -88,29 +90,97 @@
         </header>
 
         <main class="main">
-            <!-- Portfolio Section -->
-            <section id="portfolio" class="portfolio section">
-                <!-- Section Title -->
-                <div class="container section-title" data-aos="fade-up">
-                    <h2>문체 변경</h2>
+            <section class="section">
+                <div class="container section-title">
+                    <h2>번역</h2>
                     <textarea
-                        id="styleInput"
-                        placeholder="문장을 입력하세요..."
+                        id="translateInput"
                         class="textarea_SC"
+                        placeholder="번역할 문장을 입력하세요..."
                     ></textarea>
                     <div style="margin-top: 10px">
-                        <select id="styleSelector">
-                            <option value="casual">구어체</option>
-                            <option value="formal">격식체</option>
-                            <option value="literary">문학체</option>
-                            <option value="academic">학술체</option>
+                        <!-- 원본 언어 선택 -->
+                        <select id="sourceSelector">
+                            <option value="auto" selected>자동 감지</option>
+                            <option value="gu">구자라트어</option>
+                            <option value="el">그리스어</option>
+                            <option value="ne">네팔어</option>
+                            <option value="nl">네덜란드어</option>
+                            <option value="de">독일어</option>
+                            <option value="ru">러시아어</option>
+                            <option value="ro">루마니아어</option>
+                            <option value="mr">마라티어</option>
+                            <option value="ms">말레이어</option>
+                            <option value="vi">베트남어</option>
+                            <option value="bn">벵골어</option>
+                            <option value="sv">스웨덴어</option>
+                            <option value="es">스페인어</option>
+                            <option value="af">아프리칸스어</option>
+                            <option value="ar">아랍어</option>
+                            <option value="en">영어</option>
+                            <option value="uk">우크라이나어</option>
+                            <option value="it">이탈리아어</option>
+                            <option value="ja">일본어</option>
+                            <option value="jv">자바어</option>
+                            <option value="ka">조지아어</option>
+                            <option value="zh-CN">중국어(간체)</option>
+                            <option value="zh-TW">중국어(번체)</option>
+                            <option value="ta">타밀어</option>
+                            <option value="th">태국어</option>
+                            <option value="tr">터키어</option>
+                            <option value="fa">페르시아어</option>
+                            <option value="pt">포르투갈어</option>
+                            <option value="pl">폴란드어</option>
+                            <option value="fr">프랑스어</option>
+                            <option value="ko">한국어</option>
+                            <option value="hi">힌디어</option>
                         </select>
-                        <button onclick="applyStyle()" class="resultBtn_SC">
-                            스타일 적용 ✍️
+
+                        <!-- 대상 언어 선택 -->
+                        <select id="targetSelector">
+                            <option value="gu">구자라트어</option>
+                            <option value="el">그리스어</option>
+                            <option value="ne">네팔어</option>
+                            <option value="nl">네덜란드어</option>
+                            <option value="de">독일어</option>
+                            <option value="ru">러시아어</option>
+                            <option value="ro">루마니아어</option>
+                            <option value="mr">마라티어</option>
+                            <option value="ms">말레이어</option>
+                            <option value="vi">베트남어</option>
+                            <option value="bn">벵골어</option>
+                            <option value="sv">스웨덴어</option>
+                            <option value="es">스페인어</option>
+                            <option value="af">아프리칸스어</option>
+                            <option value="ar">아랍어</option>
+                            <option value="en">영어</option>
+                            <option value="uk">우크라이나어</option>
+                            <option value="it">이탈리아어</option>
+                            <option value="ja">일본어</option>
+                            <option value="jv">자바어</option>
+                            <option value="ka">조지아어</option>
+                            <option value="zh-CN">중국어(간체)</option>
+                            <option value="zh-TW">중국어(번체)</option>
+                            <option value="ta">타밀어</option>
+                            <option value="th">태국어</option>
+                            <option value="tr">터키어</option>
+                            <option value="fa">페르시아어</option>
+                            <option value="pt">포르투갈어</option>
+                            <option value="pl">폴란드어</option>
+                            <option value="fr">프랑스어</option>
+                            <option value="ko">한국어</option>
+                            <option value="hi">힌디어</option>
+                        </select>
+
+                        <button
+                            onclick="applyTranslation()"
+                            class="resultBtn_SC"
+                        >
+                            번역하기 🌍
                         </button>
                     </div>
                     <div
-                        id="styleResult"
+                        id="translateResult"
                         class="resultArea_SC"
                         style="margin-top: 20px"
                     ></div>
@@ -123,6 +193,7 @@
                 </div>
             </section>
         </main>
+
         <footer id="footer" class="footer">
             <div class="container footer-top">
                 <div class="row gy-4">
@@ -251,44 +322,6 @@
         <!-- Preloader -->
         <div id="preloader"></div>
 
-        <script>
-            async function applyStyle() {
-                const text = document.getElementById('styleInput').value;
-                const style = document.getElementById('styleSelector').value;
-                const result = document.getElementById('styleResult');
-                result.innerText = '';
-
-                if (!text.trim()) {
-                    alert('문장을 입력해주세요.');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(
-                        'http://127.0.0.1:8000/gptStyleChange',
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ text, style }),
-                        }
-                    );
-                    const data = await response.json();
-                    result.innerText =
-                        data.styled_text ||
-                        data.error ||
-                        '오류가 발생했습니다.';
-
-                    document
-                        .getElementById('pdfDownloadBtn')
-                        .addEventListener('click', function () {
-                            html2pdf(data.styled_text); // 이 방법으로 HTML을 PDF로 변환
-                        });
-                } catch (error) {
-                    result.innerText = '❗요청 중 오류 발생';
-                    console.error(error);
-                }
-            }
-        </script>
         <!-- Vendor JS Files -->
         <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
         <script src="assets/vendor/php-email-form/validate.js"></script>

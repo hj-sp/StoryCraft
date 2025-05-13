@@ -10,18 +10,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (grammarBtn) {
         grammarBtn.addEventListener('click', mistralGrammar);
     }
-    const pdfScanGrammarBtn = document.getElementById('pdfScanGrammarBtn');
-    if (pdfScanGrammarBtn) {
-        pdfScanGrammarBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            pdfScanGrammar();
-        });
-    }
     const pdfScanStyleBtn = document.getElementById('pdfScanStyleBtn');
     if (pdfScanStyleBtn) {
         pdfScanStyleBtn.addEventListener('click', (e) => {
             e.preventDefault();
             pdfScanStyle();
+        });
+    }
+    const pdfScanRewriteBtn = document.getElementById('pdfScanRewriteBtn');
+    if (pdfScanRewriteBtn) {
+        pdfScanRewriteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanRewrite();
+        });
+    }
+    const pdfScanSummaryBtn = document.getElementById('pdfScanSummaryBtn');
+    if (pdfScanSummaryBtn) {
+        pdfScanSummaryBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanSummary();
+        });
+    }
+    const pdfScanExpandBtn = document.getElementById('pdfScanExpandBtn');
+    if (pdfScanExpandBtn) {
+        pdfScanExpandBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanExpand();
+        });
+    }
+    const pdfScanGrammarBtn = document.getElementById('pdfScanGrammarBtn');
+    if (pdfScanGrammarBtn) {
+        pdfScanGrammarBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            pdfScanGrammar();
         });
     }
     const pdfScanHonorificBtn = document.getElementById('pdfScanHonorificBtn');
@@ -41,37 +62,76 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function searchExample() {
-    const userInput = document.getElementById('userInput').value;
-    const resultArea = document.getElementById('resultArea');
+    const userInput = document.getElementById('userInput').value.trim();
 
-    if (!userInput.trim()) {
+    if (!userInput) {
         alert('입력된 문장이 없습니다.');
         return;
+    }
+
+    exampleOffset = 0;
+    loadMoreExamples();
+}
+
+let exampleOffset = 0;
+let currentInput = '';
+
+async function loadMoreExamples() {
+    const userInput = document.getElementById('userInput').value.trim();
+    const container = document.getElementById('exampleContainer');
+
+    if (!userInput) {
+        alert('입력된 문장이 없습니다.');
+        return;
+    }
+
+    if (exampleOffset === 0) {
+        currentInput = userInput; // 첫 요청 시 저장
+        container.innerHTML = ''; // 초기화
     }
 
     try {
         const response = await fetch('http://127.0.0.1:8000/searchExample', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ content: userInput }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: currentInput,
+                offset: exampleOffset,
+            }),
         });
 
         const data = await response.json();
 
         if (data.examples) {
-            resultArea.innerText = '✨ 예문 결과 ✨\n\n' + data.examples;
-        } else if (data.error) {
-            resultArea.innerText = `⚠️ 오류: ${data.error}`;
-            console.error('에러 응답 내용:', data);
+            const examples = data.examples
+                .split(/\d+\.\s+/)
+                .filter((e) => e.trim());
+            examples.forEach((ex, i) => {
+                const div = document.createElement('div');
+                div.innerText = `${exampleOffset + i + 1}. ${ex.trim()}`;
+                container.appendChild(div);
+            });
+            exampleOffset += examples.length;
+
+            const moreBtn = document.getElementById('loadMoreBtn');
+            if (moreBtn) {
+                moreBtn.style.display = 'inline-block';
+            }
+
+            const pdfBtn = document.getElementById('pdfDownloadBtn');
+            if (pdfBtn) {
+                pdfBtn.onclick = function () {
+                    const content =
+                        document.getElementById('exampleContainer').innerText;
+                    html2pdf(content);
+                };
+            }
         } else {
-            resultArea.innerText = '⚠️ 알 수 없는 오류가 발생했습니다.';
-            console.warn('예상치 못한 응답 구조:', data);
+            container.innerText = '예문을 불러오지 못했습니다.';
         }
     } catch (error) {
-        console.error('Fetch error:', error);
-        alert('❗요청 중 오류가 발생했습니다.');
+        console.error('예문 요청 오류:', error);
+        alert('❗ 예문 불러오기 중 오류 발생');
     }
 }
 
@@ -121,6 +181,12 @@ async function mistralRewrite() {
             wrapper.style.marginBottom = '20px';
 
             resultArea.appendChild(wrapper);
+
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(wrapper); // 이 방법으로 HTML을 PDF로 변환
+                });
         });
     } catch (error) {
         console.error('Fetch error:', error);
@@ -153,6 +219,11 @@ async function changeStyle(exampleId) {
         } else {
             alert('스타일 변환 실패: ' + (data.error || '알 수 없는 오류'));
         }
+        document
+            .getElementById('pdfDownloadBtn')
+            .addEventListener('click', function () {
+                html2pdf(data.styled_text); // 이 방법으로 HTML을 PDF로 변환
+            });
     } catch (error) {
         console.error('스타일 변경 중 오류:', error);
         alert('❗스타일 변경 요청 중 오류가 발생했습니다.');
@@ -348,6 +419,11 @@ async function cohereHonorific() {
 
         if (data.result) {
             resultArea.innerText = data.result;
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(data.result); // 이 방법으로 HTML을 PDF로 변환
+                });
         } else if (data.error) {
             resultArea.innerText = `⚠️ 오류: ${data.error}\n\n🔍 상세 내용: ${
                 data.detail || '없음'
@@ -386,6 +462,11 @@ async function cohereInformal() {
 
         if (data.result) {
             resultArea.innerText = data.result;
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(data.result); // 이 방법으로 HTML을 PDF로 변환
+                });
         } else if (data.error) {
             resultArea.innerText = `⚠️ 오류: ${data.error}\n\n🔍 상세 내용: ${
                 data.detail || '없음'
@@ -398,6 +479,53 @@ async function cohereInformal() {
     } catch (error) {
         resultArea.innerText = '❗요청 중 오류가 발생했습니다.' + error;
         console.log('Fetch error:', error);
+    }
+}
+
+async function applyTranslation() {
+    const text = document.getElementById('translateInput').value.trim();
+    const sourceLang = document.getElementById('sourceSelector').value;
+    const targetLang = document.getElementById('targetSelector').value;
+    const resultBox = document.getElementById('translateResult');
+    resultBox.innerText = '';
+
+    if (!text) {
+        alert('번역할 문장을 입력해주세요.');
+        return;
+    }
+
+    try {
+        const res = await fetch('http://127.0.0.1:8000/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                source: sourceLang,
+                target: targetLang,
+            }),
+        });
+
+        const data = await res.json();
+
+        if (data.result) {
+            resultBox.innerText = data.result;
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(data.result); // 이 방법으로 HTML을 PDF로 변환
+                });
+        } else if (data.error) {
+            resultBox.innerText = `⚠️ 번역 오류: ${data.error}\n상세: ${
+                data.detail || '없음'
+            }`;
+            console.error('Papago 오류 응답:', data);
+        } else {
+            resultBox.innerText = '⚠️ 알 수 없는 오류가 발생했습니다.';
+            console.warn('예상치 못한 응답 구조:', data);
+        }
+    } catch (err) {
+        console.error('번역 요청 중 오류:', err);
+        resultBox.innerText = '❗ 번역 중 오류가 발생했습니다.';
     }
 }
 
@@ -515,7 +643,7 @@ async function pdfScanGrammar() {
     } catch (error) {
         console.error('Error:', error);
         resultArea.textContent =
-            '[에러 발생: PDF를 처리하거나 문법 점검에 실패했습니다]';
+            '[에러 발생: PDF를 처리하거나 문법 교정에 실패했습니다]';
     }
 }
 
@@ -565,10 +693,215 @@ async function pdfScanStyle() {
 
         const text = styleData.styled_text;
         resultArea.innerText = text;
+
+        document
+            .getElementById('pdfDownloadBtn')
+            .addEventListener('click', function () {
+                html2pdf(text); // 이 방법으로 HTML을 PDF로 변환
+            });
     } catch (error) {
         console.error('Error:', error);
         resultArea.textContent =
             '[에러 발생: PDF를 처리하거나 문체 변경에 실패했습니다]';
+    }
+}
+
+async function pdfScanRewrite() {
+    // 첨삭
+    const form = document.getElementById('uploadForm');
+    const grammarTable = document.getElementById('grammarTable');
+    grammarTable.style.visibility = 'hidden';
+
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    const resultArea = document.getElementById('resultArea');
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const rewriteOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 rewriteOriginalText를 가지고 두 번째 fetch
+        const rewriteResponse = await fetch(
+            'http://127.0.0.1:8000/mistralRewrite',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: rewriteOriginalText }),
+            }
+        );
+
+        const rewriteData = await rewriteResponse.json();
+        console.log('Rewrite Result:', rewriteData.result); // 여기까진 잘 나옴
+        resultArea.innerHTML = '';
+
+        const examples = rewriteData.result
+            .split(/예시문 \d+:/)
+            .map((text) => text.trim())
+            .filter((text) => text.length > 0);
+        examples.forEach((text, idx) => {
+            const exampleId = `example${idx + 1}`;
+            const wrapper = document.createElement('div');
+            wrapper.id = `${exampleId}-wrapper`;
+
+            const label = document.createElement('div');
+            label.innerText = `예시문 ${idx + 1}:`;
+
+            const content = document.createElement('p');
+            content.id = exampleId;
+            content.innerHTML = highlightDiffWithType(
+                rewriteOriginalText,
+                text
+            );
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(content);
+
+            wrapper.style.marginBottom = '20px';
+
+            resultArea.appendChild(wrapper);
+
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(wrapper); // 이 방법으로 HTML을 PDF로 변환
+                });
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 첨삭에 실패했습니다]';
+    }
+}
+
+async function pdfScanSummary() {
+    // 요약
+    const form = document.getElementById('uploadForm');
+    const grammarTable = document.getElementById('grammarTable');
+    grammarTable.style.visibility = 'hidden';
+
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    const resultArea = document.getElementById('resultArea');
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const summaryOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 summaryOriginalText를 가지고 두 번째 fetch
+        const summaryResponse = await fetch('http://127.0.0.1:8000/summary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content: summaryOriginalText }),
+        });
+
+        const summaryData = await summaryResponse.json();
+        console.log('Summary Result:', summaryData.result);
+
+        if (summaryData.result) {
+            resultArea.innerHTML = `
+              <p style="white-space: pre-wrap;">${summaryData.result}</p>
+            `;
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(summaryData.result); // 이 방법으로 HTML을 PDF로 변환
+                });
+        } else {
+            resultArea.innerText = `⚠️ 요약 실패: ${
+                summaryData.error || '알 수 없는 오류'
+            }`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 요약에 실패했습니다]';
+    }
+}
+
+async function pdfScanExpand() {
+    // 확장
+    const form = document.getElementById('uploadForm');
+    const grammarTable = document.getElementById('grammarTable');
+    grammarTable.style.visibility = 'hidden';
+
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    const resultArea = document.getElementById('resultArea');
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/pdfScan', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        console.log('Success:', result.text);
+
+        const expandOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
+
+        // 이 시점에서 expandOriginalText를 가지고 두 번째 fetch
+        const expandResponse = await fetch('http://127.0.0.1:8000/expand', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content: expandOriginalText }),
+        });
+
+        const expandData = await expandResponse.json();
+        console.log('Expand Result:', expandData.result);
+
+        if (expandData.result) {
+            resultArea.innerHTML = `
+              <p style="white-space: pre-wrap;">${expandData.result}</p>
+            `;
+            document
+                .getElementById('pdfDownloadBtn')
+                .addEventListener('click', function () {
+                    html2pdf(expandData.result); // 이 방법으로 HTML을 PDF로 변환
+                });
+        } else {
+            resultArea.innerText = `⚠️ 확장 실패: ${
+                expandData.error || '알 수 없는 오류'
+            }`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 확장에 실패했습니다]';
     }
 }
 
@@ -614,6 +947,12 @@ async function pdfScanHonorific() {
 
         const text = honorificData.result;
         resultArea.innerText = text;
+
+        document
+            .getElementById('pdfDownloadBtn')
+            .addEventListener('click', function () {
+                html2pdf(text); // 이 방법으로 HTML을 PDF로 변환
+            });
     } catch (error) {
         console.error('Error:', error);
         resultArea.textContent =
@@ -663,6 +1002,12 @@ async function pdfScanInformal() {
 
         const text = informalData.result;
         resultArea.innerText = text;
+
+        document
+            .getElementById('pdfDownloadBtn')
+            .addEventListener('click', function () {
+                html2pdf(text); // 이 방법으로 HTML을 PDF로 변환
+            });
     } catch (error) {
         console.error('Error:', error);
         resultArea.textContent =
