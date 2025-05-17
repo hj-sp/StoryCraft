@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import json
 import os
 import httpx
 import html
@@ -17,6 +18,8 @@ from PyPDF2 import PdfReader
 import tempfile
 from google.cloud import translate_v2 as google_translate
 import re
+from google.oauth2 import service_account
+from google.cloud import translate_v2 as google_translate
 
 
 load_dotenv()
@@ -40,7 +43,10 @@ class TextInput(BaseModel):
 class StyleChangeRequest(BaseModel):
     text: str
     style: str
-
+    
+credentials_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
+credentials = service_account.Credentials.from_service_account_info(credentials_info)
+client = google_translate.Client(credentials=credentials)
 
 MISTRAL_API_KEY_H = os.getenv("MISTRAL_API_KEY_H")
 MISTRAL_API_KEY_S = os.getenv("MISTRAL_API_KEY_S")
@@ -53,7 +59,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 PAPAGO_CLIENT_ID = os.getenv("PAPAGO_CLIENT_ID")
 PAPAGO_CLIENT_SECRET = os.getenv("PAPAGO_CLIENT_SECRET")
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./translate-key.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./translate-key.json"
 
 @app.post("/searchExample")
 async def search_example(data: TextInput):
@@ -271,7 +277,7 @@ async def translate_text(request: Request):
     target = body.get("target", "en")
 
     try:
-        client = google_translate.Client()
+        
 
         if source and source != "auto":
             result = client.translate(
