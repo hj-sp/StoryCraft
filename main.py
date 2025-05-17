@@ -35,6 +35,7 @@ class TextInput(BaseModel):
     content: str
     style: str = "default"
     offset: int = 0
+    source: str = "rewrite"
 
 class StyleChangeRequest(BaseModel):
     text: str
@@ -128,12 +129,22 @@ async def mistral_rewrite(content: TextInput):
         "Authorization": f"Bearer {MISTRAL_API_KEY_H}",
         "Content-Type": "application/json"
     }
+    count = 1 if content.source == "scan" else 3
+
+    prompt = f"""아래 문장을 자연스럽게 첨삭해줘.
+총 {count}가지 버전으로 각각 다르게 고쳐줘.
+각 버전은 번호를 붙이지 말고, 한 줄로 작성한 뒤 줄바꿈해서 구분해줘.
+원문: {content.content}
+"""
+
+
     payload = {
         "agent_id": AGENT_ID_REWRITE,
         "messages": [
-            {"role": "user", "content": content.content}
+            {"role": "user", "content": prompt}
         ]
     }
+
 
     response = requests.post(
         "https://api.mistral.ai/v1/agents/completions",

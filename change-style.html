@@ -111,6 +111,11 @@
                             스타일 적용 ✍️
                         </button>
                     </div>
+                    <div id="loadingSpinner" style="display: none; text-align: center; margin: 10px 0;">
+  <div class="spinner"></div>
+  <p style="margin-top: 5px; color: gray;">⏳ 처리 중입니다...</p>
+  </div>
+
                     <div
                         id="styleResult"
                         class="resultArea_SC"
@@ -258,10 +263,14 @@
                 const text = document.getElementById('styleInput').value;
                 const style = document.getElementById('styleSelector').value;
                 const result = document.getElementById('styleResult');
+                const spinner = document.getElementById('loadingSpinner');
+                spinner.style.display = 'block'; 
+
                 result.innerText = '';
 
                 if (!text.trim()) {
                     alert('문장을 입력해주세요.');
+                    spinner.style.display = 'none';
                     return;
                 }
 
@@ -288,6 +297,8 @@
                 } catch (error) {
                     result.innerText = '❗요청 중 오류 발생';
                     console.error(error);
+                } finally {
+                    spinner.style.display = 'none';
                 }
             }
         </script>
