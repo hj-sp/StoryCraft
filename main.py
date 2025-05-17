@@ -46,7 +46,7 @@ class StyleChangeRequest(BaseModel):
     
 credentials_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
 credentials = service_account.Credentials.from_service_account_info(credentials_info)
-client = google_translate.Client(credentials=credentials)
+google_client = google_translate.Client(credentials=credentials)
 
 MISTRAL_API_KEY_H = os.getenv("MISTRAL_API_KEY_H")
 MISTRAL_API_KEY_S = os.getenv("MISTRAL_API_KEY_S")
@@ -55,7 +55,7 @@ AGENT_ID_REWRITE = os.getenv("MISTRAL_AGENT_ID_REWRITE")
 AGENT_ID_GRAMMAR = os.getenv("MISTRAL_AGENT_ID_GRAMMAR")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 PAPAGO_CLIENT_ID = os.getenv("PAPAGO_CLIENT_ID")
 PAPAGO_CLIENT_SECRET = os.getenv("PAPAGO_CLIENT_SECRET")
 
@@ -72,7 +72,7 @@ async def search_example(data: TextInput):
     """
 
     try:
-        response = client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "너는 국어 예문 생성 도우미야."},
@@ -115,7 +115,7 @@ async def gpt_style_change(request: Request):
     full_prompt = f"아래 문장을 {instruction}\n\n'{text}'"
 
     try:
-        completion = client.chat.completions.create(
+        completion = openai_client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system",
@@ -194,7 +194,7 @@ async def summarize(content: TextInput):
 
 @app.post("/expand")
 async def expand(content: TextInput):
-    response = client.chat.completions.create(
+    response = openai_client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "당신은 글을 확장하는 전문가입니다."},
@@ -280,11 +280,11 @@ async def translate_text(request: Request):
         
 
         if source and source != "auto":
-            result = client.translate(
+            result = google_client.translate(
                 text, source_language=source, target_language=target)
         else:
 
-            result = client.translate(text, target_language=target)
+            result = google_client.translate(text, target_language=target)
 
         translated_clean = html.unescape(result["translatedText"])
         return {"result": translated_clean}
