@@ -79,7 +79,7 @@ async def search_example(data: TextInput):
             temperature=0.7
         )
         output = response.choices[0].message.content
-        return {"examples": output}
+        return {"result": output}
     except Exception as e:
         return {"error": f"GPT 호출 오류: {str(e)}"}
 
