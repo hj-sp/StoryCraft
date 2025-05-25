@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>StoryCraft</title>
+        <meta name="description" content="" />
+        <meta name="keywords" content="" />
+
+        <!-- Favicons -->
+        <link href="assets/img/favicon.png" rel="icon" />
+        <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon" />
+
+        <!-- Fonts -->
+        <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Vendor CSS Files -->
+        <link
+            href="assets/vendor/bootstrap/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="assets/vendor/bootstrap-icons/bootstrap-icons.css"
+            rel="stylesheet"
+        />
+        <link href="assets/vendor/aos/aos.css" rel="stylesheet" />
+        <link
+            href="assets/vendor/glightbox/css/glightbox.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="assets/vendor/swiper/swiper-bundle.min.css"
+            rel="stylesheet"
+        />
+
+        <!-- Main CSS File -->
+        <link href="assets/css/main.css" rel="stylesheet" />
+
+        <!-- =======================================================
+  * Template Name: Bikin
+  * Template URL: https://bootstrapmade.com/bikin-free-simple-landing-page-template/
+  * Updated: Aug 07 2024 with Bootstrap v5.3.3
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+    </head>
+
+    <body class="index-page">
+        <header id="header" class="header d-flex align-items-center sticky-top">
+            <div
+                class="container position-relative d-flex align-items-center justify-content-between"
+            >
+                <a
+                    href="index.html"
+                    class="logo d-flex align-items-center me-auto me-xl-0"
+                >
+                    <!-- Uncomment the line below if you also wish to use an image logo -->
+                    <!-- <img src="assets/img/logo.png" alt=""> -->
+                    <h1 class="sitename">StoryCraft</h1>
+                </a>
+
+                <nav id="navmenu" class="navmenu">
+                    <ul>
+                        <li>
+                            <!-- <a href="index.html#hero">Home</a>
+                        </li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#services">Services</a></li> -->
+                        </li>
+
+                        <li><a href="search.html">Search</a></li>
+                        <li><a href="rewrite.html">Rewrite</a></li>
+                        <li><a href="change-style.html">Style</a></li>
+                        <li>
+                            <a href="grammar.html" class="active">Grammar</a>
+                        </li>
+                        <li><a href="honorific.html">Honorific</a></li>
+                        <li><a href="translate.html">Translate</a></li>
+                        <li><a href="scan.html">Scan</a></li>
+                        <!-- <li><a href="index.html#faq">FAQ</a></li> -->
+                    </ul>
+                    <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Pricing Section -->
+            <section id="pricing" class="pricing section">
+                <!-- Section Title -->
+                <div class="container section-title" data-aos="fade-up">
+                    <h2>Grammar Corrector</h2>
+                    <div class="container">
+                        <textarea
+                            id="userInput"
+                            placeholder="여기에 글을 입력하세요..."
+                            class="textarea_SC"
+                        ></textarea>
+                        <div>
+                            <button id="grammarBtn" class="resultBtn_SC">
+                                <span>문법교정 🖊️</span>
+                            </button>
+                        </div>
+                        <!-- <div>
+                            <button id="grammarBtn2" class="resultBtn_SC">
+                                <span>문법교정2 🖊️</span>
+                            </button>
+                        </div> -->
+                        <div
+                            id="loadingSpinner"
+                            style="
+                                display: none;
+                                text-align: center;
+                                margin: 10px 0;
+                            "
+                        >
+                            <div class="spinner"></div>
+                            <p style="margin-top: 5px; color: gray">
+                                ⏳ 처리 중입니다...
+                            </p>
+                        </div>
+
+                        <div
+                            id="resultArea"
+                            class="resultArea_SC"
+                            style="text-align: left"
+                        >
+                            <table id="grammarTable">
+                                <thead>
+                                    <tr>
+                                        <th>교정문</th>
+                                        <th>관련 규범&설명</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <button
+                            id="pdfDownloadBtn"
+                            class="resultBtn_SC resultAreaPdfDownloadBtn_SC"
+                        >
+                            결과를 PDF로 다운로드
+                        </button>
+                    </div>
+                </div>
+                <!-- End Section Title -->
+                <!-- /Pricing Section -->
+            </section>
+        </main>
+
+        <footer id="footer" class="footer">
+            <div class="container footer-top">
+                <div class="row gy-4">
+                    <div class="col-lg-4 col-md-6 footer-about">
+                        <a
+                            href="index.html"
+                            class="logo d-flex align-items-center"
+                        >
+                            <span class="sitename">StoryCraft</span>
+                        </a>
+                        <div class="footer-contact pt-3">
+                            <p>상명대학교 천안캠퍼스</p>
+                            <p>충청남도 천안시 동남구 상명대길 31</p>
+                            <p class="mt-3">
+                                <strong>Phone:</strong>
+                                <span>010-1234-1234</span>
+                            </p>
+                            <p>
+                                <strong>Email:</strong>
+                                <span>202200000@sangmyung.kr</span>
+                            </p>
+                        </div>
+                        <div class="social-links d-flex mt-4">
+                            <a href=""><i class="bi bi-twitter-x"></i></a>
+                            <a href=""><i class="bi bi-facebook"></i></a>
+                            <a href=""><i class="bi bi-instagram"></i></a>
+                            <a href=""><i class="bi bi-linkedin"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2 col-md-3 footer-links">
+                        <h4>Useful Links</h4>
+                        <ul>
+                            <li>
+                                <a
+                                    href="https://ko.dict.naver.com/#/main"
+                                    target="_blank"
+                                    >국어사전</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://papago.naver.com/"
+                                    target="_blank"
+                                    >파파고</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://app.ludwig.guru/"
+                                    target="_blank"
+                                    >Ludwig(영어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://www.writecream.com/japanese-grammar-checker/"
+                                    target="_blank"
+                                    >WhiteCream(일본어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://ahelp.com/grammar-check/chinese/"
+                                    target="_blank"
+                                    >AHelp(중국어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://quillbot.com/spanish-grammar-check"
+                                    target="_blank"
+                                    >QuillBot(스페인어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://languagetool.org/"
+                                    target="_blank"
+                                    >LanguageTool(다언어 지원)</a
+                                >
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="col-lg-2 col-md-3 footer-links">
+                        <h4>Our Services</h4>
+                        <ul>
+                            <li><a href="search.html">Search</a></li>
+                            <li><a href="rewrite.html">Rewrite</a></li>
+                            <li><a href="change-style.html">Style</a></li>
+                            <li><a href="grammar.html">Grammar</a></li>
+                            <li><a href="honorific.html">Honorific</a></li>
+                            <li><a href="translate.html">Translate</a></li>
+                            <li><a href="scan.html">Scan</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container copyright text-center mt-4">
+                <p>
+                    © <span>Copyright</span>
+                    <strong class="px-1 sitename">Bikin</strong>
+                    <span>All Rights Reserved</span>
+                </p>
+                <div class="credits">
+                    <!-- All the links in the footer should remain intact. -->
+                    <!-- You can delete the links only if you've purchased the pro version. -->
+                    <!-- Licensing information: https://bootstrapmade.com/license/ -->
+                    <!-- Purchase the pro version with working PHP/AJAX contact form: [buy-url] -->
+                    Designed by
+                    <a href="https://bootstrapmade.com/">BootstrapMade</a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Scroll Top -->
+        <a
+            href="#"
+            id="scroll-top"
+            class="scroll-top d-flex align-items-center justify-content-center"
+            ><i class="bi bi-arrow-up-short"></i
+        ></a>
+
+        <!-- Preloader -->
+        <div id="preloader"></div>
+
+        <!-- Vendor JS Files -->
+        <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/vendor/php-email-form/validate.js"></script>
+        <script src="assets/vendor/aos/aos.js"></script>
+        <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+        <script src="assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+        <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+        <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+        <!-- Main JS File -->
+        <script src="assets/js/main.js"></script>
+        <script src="assets/js/script.js"></script>
+        <script src="https://unpkg.com/diff-match-patch"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+    </body>
+</html>

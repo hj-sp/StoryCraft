@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+requests
+mistralai
+cohere
+openai
+openai
+dotenv
+pydantic
+python-multipart
+PyPDF2
+google-cloud-translate
+diff-match-patch
+torch
+transformers
