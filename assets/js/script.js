@@ -116,8 +116,8 @@ async function loadMoreExamples() {
 
         const data = await response.json();
 
-        if (data.examples) {
-            const examples = data.examples
+        if (data.result) {
+            const examples = data.result
                 .split(/\d+\.\s+/)
                 .filter((e) => e.trim());
             examples.forEach((ex, i) => {
