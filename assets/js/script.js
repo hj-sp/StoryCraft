@@ -105,7 +105,7 @@ async function loadMoreExamples() {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/searchExample', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/searchExample', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -209,7 +209,7 @@ async function mistralRewrite() {
     if (spinner) spinner.style.display = 'block';
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/mistralRewrite', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/mistralRewrite', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -298,7 +298,7 @@ async function changeStyle(exampleId) {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/gptStyleChange', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/gptStyleChange', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: selectedText, style: style }),
@@ -356,7 +356,7 @@ async function summarizeText() {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/summary', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -429,7 +429,7 @@ async function expandText() {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/expand', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/expand', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -492,7 +492,7 @@ async function mistralGrammar() {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/mistralGrammar', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/mistralGrammar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -714,7 +714,7 @@ async function cohereHonorific() {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/cohereHonorific', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/cohereHonorific', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -762,7 +762,7 @@ async function cohereInformal() {
     }
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/cohereInformal', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/cohereInformal', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -812,7 +812,7 @@ async function applyTranslation() {
     }
 
     try {
-        const res = await fetch('http://storycraft-ppxj.onrender.com/translate', {
+        const res = await fetch('https://storycraft-ppxj.onrender.com/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -877,7 +877,7 @@ async function handlePdfScanAndProcess({
             extractedText = lastExtractedText;
         } else if (file) {
             const extractResponse = await fetch(
-                'http://storycraft-ppxj.onrender.com/pdfScan',
+                'https://storycraft-ppxj.onrender.com/pdfScan',
                 {
                     method: 'POST',
                     body: formData,
@@ -914,7 +914,7 @@ async function handlePdfScanAndProcess({
         }
 
         const apiResponse = await fetch(
-            `http://storycraft-ppxj.onrender.com/${apiEndpoint}`,
+            `https://storycraft-ppxj.onrender.com/${apiEndpoint}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1040,14 +1040,14 @@ if (!grammarTable || !tbody) {
     formData.append('pdf', file);
 
     try {
-        const response = await fetch('http://storycraft-ppxj.onrender.com/pdfScan', {
+        const response = await fetch('https://storycraft-ppxj.onrender.com/pdfScan', {
             method: 'POST',
             body: formData,
         });
         const result = await response.json();
         const grammarOriginalText = result.text || '[텍스트를 추출하지 못했습니다]';
 
-        const grammarResponse = await fetch('http://storycraft-ppxj.onrender.com/mistralGrammar', {
+        const grammarResponse = await fetch('https://storycraft-ppxj.onrender.com/mistralGrammar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: grammarOriginalText }),
@@ -1225,7 +1225,7 @@ if (grammarBox) {
 
         try {
             const extractResponse = await fetch(
-                'http://storycraft-ppxj.onrender.com/pdfScan',
+                'https://storycraft-ppxj.onrender.com/pdfScan',
                 {
                     method: 'POST',
                     body: formData,
