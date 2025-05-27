@@ -29,11 +29,11 @@ load_dotenv()
 
 app = FastAPI()
 
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://hj-sp.github.io"], 
+    allow_origins=["*"],
+    # allow_origins=["https://hj-sp.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -410,7 +410,8 @@ async def translate_text(request: Request):
     try:
         # ✅ 환경변수에서 키 정보 불러오기
         credentials_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
-        credentials = service_account.Credentials.from_service_account_info(credentials_info)
+        credentials = service_account.Credentials.from_service_account_info(
+            credentials_info)
 
         # ✅ credentials 포함한 클라이언트 생성
         client = google_translate.Client(credentials=credentials)
@@ -426,7 +427,7 @@ async def translate_text(request: Request):
 
     except Exception as e:
         return {"error": f"Google 번역 API 호출 오류: {str(e)}"}
-    
+
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):
     # 업로드된 PDF를 임시 파일로 저장

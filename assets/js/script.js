@@ -1,3 +1,9 @@
+const isLocal =
+    location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const BASE_URL = isLocal
+    ? 'http://127.0.0.1:8000'
+    : 'https://storycraft-ppxj.onrender.com';
+
 // DOMContentLoaded 이벤트를 사용하여 DOM이 완전히 로드된 이후에 document.getElementById로 요소를 찾도록 수정
 document.addEventListener('DOMContentLoaded', () => {
     // 버튼 클릭 이벤트 바인딩
@@ -105,7 +111,7 @@ async function loadMoreExamples() {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/searchExample', {
+        const response = await fetch(`${BASE_URL}/searchExample`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -137,7 +143,7 @@ async function loadMoreExamples() {
                 copyBtn.style.fontSize = '16px';
                 copyBtn.style.padding = '0';
                 copyBtn.style.margin = '0';
-                copyBtn.style.display = 'inline'; 
+                copyBtn.style.display = 'inline';
 
                 copyBtn.onclick = () => {
                     navigator.clipboard.writeText(ex.trim());
@@ -180,12 +186,11 @@ function rebindRewriteBtn() {
     const currentBtn = document.getElementById('rewriteBtn');
     if (!currentBtn) return;
 
-    const newBtn = currentBtn.cloneNode(true); 
-    newBtn.id = 'rewriteBtn'; 
+    const newBtn = currentBtn.cloneNode(true);
+    newBtn.id = 'rewriteBtn';
     currentBtn.replaceWith(newBtn);
     newBtn.addEventListener('click', mistralRewrite);
 }
-
 
 async function mistralRewrite() {
     const userInput = document.getElementById('userInput').value;
@@ -209,7 +214,7 @@ async function mistralRewrite() {
     if (spinner) spinner.style.display = 'block';
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/mistralRewrite', {
+        const response = await fetch(`${BASE_URL}/mistralRewrite`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -282,7 +287,6 @@ async function mistralRewrite() {
     }
 }
 
-
 async function changeStyle(exampleId) {
     const selectedText = document.getElementById(exampleId).innerText.trim();
     const styleRaw = document.getElementById(`${exampleId}-style`).value;
@@ -298,7 +302,7 @@ async function changeStyle(exampleId) {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/gptStyleChange', {
+        const response = await fetch(`${BASE_URL}/gptStyleChange`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: selectedText, style: style }),
@@ -323,12 +327,50 @@ async function changeStyle(exampleId) {
     }
 }
 
+async function applyStyle() {
+    const text = document.getElementById('styleInput').value;
+    const style = document.getElementById('styleSelector').value;
+    const result = document.getElementById('styleResult');
+    const spinner = document.getElementById('loadingSpinner');
+    spinner.style.display = 'block';
+
+    result.innerText = '';
+
+    if (!text.trim()) {
+        alert('문장을 입력해주세요.');
+        spinner.style.display = 'none';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/gptStyleChange`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, style }),
+        });
+        const data = await response.json();
+        result.innerText =
+            data.styled_text || data.error || '오류가 발생했습니다.';
+
+        const pdfBtn = document.getElementById('pdfDownloadBtn');
+        if (pdfBtn) {
+            pdfBtn.onclick = function () {
+                saveAsPDF(data.styled_text, '문체 변경.pdf');
+            };
+        }
+    } catch (error) {
+        result.innerText = '❗요청 중 오류 발생';
+        console.error(error);
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
 async function summarizeText() {
     const userInput = document.getElementById('userInput').value;
     const resultArea = document.getElementById('resultArea');
     const spinner = document.getElementById('loadingSpinner');
 
-   
     const rewriteBox = document.getElementById('rewriteResults');
     if (rewriteBox) rewriteBox.innerHTML = '';
 
@@ -338,13 +380,14 @@ async function summarizeText() {
     const oldExpand = document.getElementById('expandContent');
     if (oldExpand) oldExpand.remove();
 
-    
-    const oldSummaryHeading = Array.from(document.querySelectorAll('h5'))
-        .find(el => el.innerText.includes('요약 결과'));
+    const oldSummaryHeading = Array.from(document.querySelectorAll('h5')).find(
+        (el) => el.innerText.includes('요약 결과')
+    );
     if (oldSummaryHeading) oldSummaryHeading.remove();
 
-    const oldExpandHeading = Array.from(document.querySelectorAll('h5'))
-        .find(el => el.innerText.includes('확장 결과'));
+    const oldExpandHeading = Array.from(document.querySelectorAll('h5')).find(
+        (el) => el.innerText.includes('확장 결과')
+    );
     if (oldExpandHeading) oldExpandHeading.remove();
 
     if (spinner) spinner.style.display = 'block';
@@ -356,7 +399,7 @@ async function summarizeText() {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/summary', {
+        const response = await fetch(`${BASE_URL}/summary`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -386,7 +429,9 @@ async function summarizeText() {
             resultArea.appendChild(heading);
             resultArea.appendChild(content);
         } else {
-            resultArea.innerText = `⚠️ 요약 실패: ${data.error || '알 수 없는 오류'}`;
+            resultArea.innerText = `⚠️ 요약 실패: ${
+                data.error || '알 수 없는 오류'
+            }`;
         }
     } catch (error) {
         console.error('요약 요청 중 오류:', error);
@@ -401,7 +446,6 @@ async function expandText() {
     const resultArea = document.getElementById('resultArea');
     const spinner = document.getElementById('loadingSpinner');
 
-    
     const rewriteBox = document.getElementById('rewriteResults');
     if (rewriteBox) rewriteBox.innerHTML = '';
 
@@ -411,13 +455,14 @@ async function expandText() {
     const oldSummary = document.getElementById('summaryContent');
     if (oldSummary) oldSummary.remove();
 
-   
-    const oldExpandHeading = Array.from(document.querySelectorAll('h5'))
-        .find(el => el.innerText.includes('확장 결과'));
+    const oldExpandHeading = Array.from(document.querySelectorAll('h5')).find(
+        (el) => el.innerText.includes('확장 결과')
+    );
     if (oldExpandHeading) oldExpandHeading.remove();
 
-    const oldSummaryHeading = Array.from(document.querySelectorAll('h5'))
-        .find(el => el.innerText.includes('요약 결과'));
+    const oldSummaryHeading = Array.from(document.querySelectorAll('h5')).find(
+        (el) => el.innerText.includes('요약 결과')
+    );
     if (oldSummaryHeading) oldSummaryHeading.remove();
 
     if (spinner) spinner.style.display = 'block';
@@ -429,7 +474,7 @@ async function expandText() {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/expand', {
+        const response = await fetch(`${BASE_URL}/expand`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: userInput }),
@@ -459,7 +504,9 @@ async function expandText() {
             resultArea.appendChild(heading);
             resultArea.appendChild(content);
         } else {
-            resultArea.innerText = `⚠️ 확장 실패: ${data.error || '알 수 없는 오류'}`;
+            resultArea.innerText = `⚠️ 확장 실패: ${
+                data.error || '알 수 없는 오류'
+            }`;
         }
     } catch (error) {
         console.error('확장 요청 중 오류:', error);
@@ -492,7 +539,7 @@ async function mistralGrammar() {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/mistralGrammar', {
+        const response = await fetch(`${BASE_URL}/mistralGrammar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -535,10 +582,12 @@ async function mistralGrammar() {
                 const tdRight = document.createElement('td');
                 tdRight.classList.add('right');
 
-                tdLeft.innerHTML = `<span class="sentence">${textDiff(
-                    cleanLine1,
-                    cleanLine2
-                )}</span>`;
+                // tdLeft.innerHTML = `<span class="sentence">${textDiff(
+                //     cleanLine1,
+                //     cleanLine2
+                // )}</span>`;
+
+                tdLeft.innerText = '❌' + cleanLine1 + '\n' + '✅' + cleanLine2;
 
                 // tdRight는 기존처럼 규칙 설명 출력
                 tdRight.textContent = lines[i + 2] + '\n' + lines[i + 3];
@@ -714,7 +763,7 @@ async function cohereHonorific() {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/cohereHonorific', {
+        const response = await fetch(`${BASE_URL}/cohereHonorific`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -762,7 +811,7 @@ async function cohereInformal() {
     }
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/cohereInformal', {
+        const response = await fetch(`${BASE_URL}/cohereInformal`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -812,7 +861,7 @@ async function applyTranslation() {
     }
 
     try {
-        const res = await fetch('https://storycraft-ppxj.onrender.com/translate', {
+        const response = await fetch(`${BASE_URL}/translate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -822,7 +871,7 @@ async function applyTranslation() {
             }),
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
         if (data.result) {
             resultBox.innerText = data.result;
@@ -876,26 +925,23 @@ async function handlePdfScanAndProcess({
         if (lastExtractedText && !file) {
             extractedText = lastExtractedText;
         } else if (file) {
-            const extractResponse = await fetch(
-                'https://storycraft-ppxj.onrender.com/pdfScan',
-                {
-                    method: 'POST',
-                    body: formData,
-                }
-            );
+            const response = await fetch(`${BASE_URL}/pdfScan`, {
+                method: 'POST',
+                body: formData,
+            });
 
-            const contentType = extractResponse.headers.get('content-type');
-            if (!extractResponse.ok) {
-                throw new Error(`PDF 업로드 실패: ${extractResponse.status}`);
+            const contentType = response.headers.get('content-type');
+            if (!response.ok) {
+                throw new Error(`PDF 업로드 실패: ${response.status}`);
             }
 
             if (!contentType || !contentType.includes('application/json')) {
-                const raw = await extractResponse.text();
+                const raw = await response.text();
                 console.error('❌ JSON 응답 아님:', raw);
                 throw new Error('JSON 형식이 아님: ' + raw);
             }
 
-            const extractResult = await extractResponse.json();
+            const extractResult = await response.json();
             console.log('🧾 추출된 텍스트:', extractResult.text);
             extractedText =
                 extractResult.text || '[텍스트를 추출하지 못했습니다]';
@@ -913,17 +959,17 @@ async function handlePdfScanAndProcess({
             requestBody = { content: extractedText, ...extraPayload };
         }
 
-        const apiResponse = await fetch(
-            `https://storycraft-ppxj.onrender.com/${apiEndpoint}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
-            }
-        );
+        const apiResponse = await fetch(`${BASE_URL}/${apiEndpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
 
         const data = await apiResponse.json();
         const resultText = data[resultKey];
+
+        console.log('📦 API 응답 데이터 전체:', data); // ✅ 전체 응답 확인
+        console.log('📌 추출된 resultText:', resultText);
 
         resultArea.innerHTML = '';
 
@@ -937,7 +983,7 @@ async function handlePdfScanAndProcess({
 
             const box = document.createElement('div');
             box.className = boxClass;
-            box.innerHTML = `<p style="white-space: pre-wrap;">${firstResult}</p>`;
+            box.innerHTML = `<p style="white-space: pre-wrap;">${resultText}</p>`;
             resultArea.appendChild(box);
 
             let filename = 'PDF_SCAN_결과.pdf';
@@ -1013,19 +1059,19 @@ async function pdfScanGrammar() {
     const grammarBox = document.getElementById('grammarBox');
 
     if (grammarBox) {
-        grammarBox.style.display = 'block'; 
+        grammarBox.style.display = 'block';
     }
 
-
     if (!file) {
-    alert('📄 먼저 PDF 파일을 업로드해 주세요.');
-    return;
-}
-if (!grammarTable || !tbody) {
-    alert('❌ grammarTable이 존재하지 않거나 구조가 잘못되었습니다. HTML을 확인하세요.');
-    return;
-}
-
+        alert('📄 먼저 PDF 파일을 업로드해 주세요.');
+        return;
+    }
+    if (!grammarTable || !tbody) {
+        alert(
+            '❌ grammarTable이 존재하지 않거나 구조가 잘못되었습니다. HTML을 확인하세요.'
+        );
+        return;
+    }
 
     resultArea.innerHTML = '';
 
@@ -1033,21 +1079,21 @@ if (!grammarTable || !tbody) {
         tbody.removeChild(tbody.firstChild);
     }
 
-
     spinner.style.display = 'block';
 
     const formData = new FormData();
     formData.append('pdf', file);
 
     try {
-        const response = await fetch('https://storycraft-ppxj.onrender.com/pdfScan', {
+        const response = await fetch(`${BASE_URL}/pdfScan`, {
             method: 'POST',
             body: formData,
         });
         const result = await response.json();
-        const grammarOriginalText = result.text || '[텍스트를 추출하지 못했습니다]';
+        const grammarOriginalText =
+            result.text || '[텍스트를 추출하지 못했습니다]';
 
-        const grammarResponse = await fetch('https://storycraft-ppxj.onrender.com/mistralGrammar', {
+        const grammarResponse = await fetch(`${BASE_URL}/mistralGrammar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: grammarOriginalText }),
@@ -1057,8 +1103,11 @@ if (!grammarTable || !tbody) {
         const text = grammarData.result;
 
         if (text) {
-            const lines = text.split(/\n+/).map(line => line.trim()).filter(line => line.length > 0);
-            const removeIcons = txt => txt.replace(/^[^\w가-힣]+/, '').trim();
+            const lines = text
+                .split(/\n+/)
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+            const removeIcons = (txt) => txt.replace(/^[^\w가-힣]+/, '').trim();
             let hasError = false;
 
             for (let i = 0; i < lines.length; i += 4) {
@@ -1074,13 +1123,18 @@ if (!grammarTable || !tbody) {
                 const tdRight = document.createElement('td');
                 tdRight.classList.add('right');
 
-                tdLeft.innerHTML = `<span class="sentence">${textDiff(cleanLine1, cleanLine2)}</span>`;
-                tdRight.textContent = (lines[i + 2] || '') + '\n' + (lines[i + 3] || '');
+                tdLeft.innerHTML = `<span class="sentence">${textDiff(
+                    cleanLine1,
+                    cleanLine2
+                )}</span>`;
+                tdRight.textContent =
+                    (lines[i + 2] || '') + '\n' + (lines[i + 3] || '');
 
                 const copyBtn = document.createElement('button');
                 copyBtn.innerText = '📋';
                 copyBtn.title = '교정문 복사';
-                copyBtn.style = 'border: none; background: transparent; cursor: pointer; font-size: 16px;';
+                copyBtn.style =
+                    'border: none; background: transparent; cursor: pointer; font-size: 16px;';
                 copyBtn.onclick = () => {
                     navigator.clipboard.writeText(cleanLine2.trim());
                     copyBtn.innerText = '✅';
@@ -1098,33 +1152,32 @@ if (!grammarTable || !tbody) {
             const pdfBtn = document.getElementById('pdfDownloadBtn');
             if (pdfBtn) {
                 pdfBtn.onclick = function () {
-                    saveAsPDF(grammarTable, '스캔 문법 교정.pdf'); 
+                    saveAsPDF(grammarTable, '스캔 문법 교정.pdf');
                 };
             }
         } else {
             resultArea.innerText = grammarData.error
-                ? `⚠️ 오류: ${grammarData.error}\n🔍 상세: ${grammarData.detail || '없음'}`
+                ? `⚠️ 오류: ${grammarData.error}\n🔍 상세: ${
+                      grammarData.detail || '없음'
+                  }`
                 : '⚠️ 알 수 없는 오류가 발생했습니다.';
         }
     } catch (error) {
         console.error('Error:', error);
-        resultArea.textContent = '[에러 발생: PDF를 처리하거나 문법 교정에 실패했습니다]';
+        resultArea.textContent =
+            '[에러 발생: PDF를 처리하거나 문법 교정에 실패했습니다]';
     } finally {
         spinner.style.display = 'none';
     }
 }
 
-
 async function pdfScanStyle() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
-
-
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     const style = document.getElementById('styleSelect').value;
-
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'gptStyleChange',
@@ -1136,10 +1189,9 @@ if (grammarBox) {
 
 async function pdfScanRewrite() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
-
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'mistralRewrite',
@@ -1150,9 +1202,9 @@ if (grammarBox) {
 
 async function pdfScanSummary() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'summary',
@@ -1162,10 +1214,9 @@ if (grammarBox) {
 
 async function pdfScanExpand() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
-
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'expand',
@@ -1175,10 +1226,9 @@ if (grammarBox) {
 
 async function pdfScanHonorific() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
-
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'cohereHonorific',
@@ -1188,9 +1238,9 @@ if (grammarBox) {
 
 async function pdfScanInformal() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'cohereInformal',
@@ -1200,10 +1250,9 @@ if (grammarBox) {
 
 async function pdfScanTranslate() {
     const grammarBox = document.getElementById('grammarBox');
-if (grammarBox) {
-    grammarBox.style.display = 'none';
-}
-
+    if (grammarBox) {
+        grammarBox.style.display = 'none';
+    }
 
     const sourceLang = document.getElementById('sourceSelector').value;
     const targetLang = document.getElementById('targetSelector').value;
@@ -1218,19 +1267,15 @@ if (grammarBox) {
 
     let textToTranslate = lastExtractedText;
 
-   
     if (file) {
         const formData = new FormData();
         formData.append('pdf', file);
 
         try {
-            const extractResponse = await fetch(
-                'https://storycraft-ppxj.onrender.com/pdfScan',
-                {
-                    method: 'POST',
-                    body: formData,
-                }
-            );
+            const extractResponse = await fetch(`${BASE_URL}/pdfScan`, {
+                method: 'POST',
+                body: formData,
+            });
 
             const extractResult = await extractResponse.json();
             textToTranslate = extractResult.text;
@@ -1263,11 +1308,28 @@ function highlightDiffWithType(original, revised) {
     for (let i = 0; i < diffs.length; i++) {
         const [op, text] = diffs[i];
 
+        if (text.trim() === '') {
+            result.push(text); // 공백만 diff된 경우 마킹 없이 출력
+            continue;
+        }
+
         if (op === 0) {
             result.push(text);
         } else if (op === -1 && diffs[i + 1] && diffs[i + 1][0] === 1) {
-            const addedText = diffs[i + 1][1];
-            const deletedText = text;
+            let deletedText = text;
+            let addedText = diffs[i + 1][1];
+
+            // 공백만 바뀐 경우 무시
+            if (addedText.trim() === '' && deletedText.trim() === '') {
+                result.push(addedText);
+                i++;
+                continue;
+            }
+
+            // 공백이 포함된 경우 → 앞뒤 공백 분리
+            const prefix = addedText.match(/^\s*/)[0];
+            const suffix = addedText.match(/\s*$/)[0];
+            const cleanAdded = addedText.trim();
 
             let cssClass = 'tooltip-wrapper highlight-edit';
             let tip = '표현이 바뀌었어요';
@@ -1290,20 +1352,19 @@ function highlightDiffWithType(original, revised) {
                 tip = '글 흐름에 더 어울리는 표현이에요';
             }
 
-            result.push(`
-                <span class="${cssClass}">
-                    ${addedText}
-                    <span class="custom-tooltip">${tip}</span>
-                </span>
-            `);
+            result.push(
+                `${prefix}<span class="${cssClass}">${cleanAdded}<span class="custom-tooltip">${tip}</span></span>${suffix}`
+            );
             i++;
         } else if (op === 1) {
-            result.push(`
-                <span class="tooltip-wrapper highlight-added">
-                    ${text}
-                    <span class="custom-tooltip">새로 추가된 표현이에요</span>
-                </span>
-            `);
+            // 삽입 단독 (del 없이 add만 있을 경우)
+            const prefix = text.match(/^\s*/)[0];
+            const suffix = text.match(/\s*$/)[0];
+            const cleanText = text.trim();
+
+            result.push(
+                `${prefix}<span class="tooltip-wrapper highlight-added">${cleanText}<span class="custom-tooltip">새로 추가된 표현이에요</span></span>${suffix}`
+            );
         }
     }
 
@@ -1313,16 +1374,13 @@ function highlightDiffWithType(original, revised) {
 function saveAsPDF(content, filename = 'converted.pdf') {
     let source;
 
-    
     if (typeof content === 'string') {
         const formattedHTML = `<div style="white-space: pre-wrap;">${content.replace(
             /\n/g,
             '<br>'
         )}</div>`;
         source = formattedHTML;
-    }
-    
-    else if (content instanceof HTMLElement) {
+    } else if (content instanceof HTMLElement) {
         source = content;
     } else {
         console.error(
