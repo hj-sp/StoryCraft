@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
+import io
 import os
+import re
 import json
 import httpx
 import html
@@ -12,6 +14,9 @@ import cohere
 from fastapi import Body
 from fastapi import Request
 from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+from google.cloud import vision
+import base64
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from PyPDF2 import PdfReader
@@ -64,6 +69,7 @@ PAPAGO_CLIENT_ID = os.getenv("PAPAGO_CLIENT_ID")
 PAPAGO_CLIENT_SECRET = os.getenv("PAPAGO_CLIENT_SECRET")
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./translate-key.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./vision-key.json"
 
 @app.post("/searchExample")
 async def search_example(data: TextInput):
@@ -449,3 +455,44 @@ async def upload_pdf(pdf: UploadFile = File(...)):
     cleaned_text = re.sub(r" (?=\.)", "", extracted_text)
 
     return {"filename": pdf.filename, "text": cleaned_text.strip()}
+
+# 단독 자모 제거(후처리)
+def clean_ocr_text(text: str) -> str:
+    """
+    단독 자모(ㅏ, ㄱ 등)나 잡음을 제거함.
+    """
+    cleaned_lines = []
+    for line in text.split('\n'):
+        stripped = line.strip()
+        # 단독 자모나 1~2글자 잡음 제거
+        if re.fullmatch(r'[ㄱ-ㅎㅏ-ㅣ\s]*', stripped):
+            continue
+        if len(stripped) <= 2 and re.search(r'[ㄱ-ㅎㅏ-ㅣ]', stripped):
+            continue
+        cleaned_lines.append(line)
+    return '\n'.join(cleaned_lines)
+
+
+@app.post("/visionOCR")
+async def vision_ocr(image: UploadFile = File(...)):
+    try:
+        contents = await image.read()
+
+        client = vision.ImageAnnotatorClient()
+        image_content = vision.Image(content=contents)
+        response = client.text_detection(image=image_content)
+
+        texts = response.text_annotations
+
+        if not texts:
+            return {"result": "텍스트를 찾을 수 없습니다."}
+
+        raw_text = texts[0].description
+        cleaned_text = clean_ocr_text(raw_text)
+        return {"result": cleaned_text}
+
+
+    except Exception as e:
+        print("❌ 서버 에러:", e)
+        return {"result": f"서버 에러: {e}"}
+    

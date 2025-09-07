@@ -904,16 +904,15 @@ async function handlePdfScanAndProcess({
     resultKey = 'result',
     extraPayload = {},
 }) {
-    const spinner = document.getElementById('loadingSpinner');
-    const resultArea = document.getElementById('resultArea');
-    const fileInput = document.getElementById('pdfFile');
+    const resultArea = document.getElementById('resultArea') || document.getElementById('ocrResult');
+    const fileInput  = document.getElementById('pdfFile')   || document.getElementById('imageFile');
     const file = fileInput ? fileInput.files[0] : null;
 
+    const spinner = document.getElementById('loadingSpinner');
     if (!spinner || !resultArea) {
         console.error('❗ spinner 또는 resultArea 요소가 없습니다.');
         return;
     }
-
     spinner.style.display = 'block';
 
     const formData = new FormData();
@@ -1400,3 +1399,88 @@ function saveAsPDF(content, filename = 'converted.pdf') {
         .from(source)
         .save();
 }
+
+async function performOCR() {
+    const fileInput = document.getElementById('imageFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('이미지를 업로드해주세요.');
+        return;
+    }
+
+    const spinner = document.getElementById('loadingSpinner');
+    const resultArea = document.getElementById('ocrResult');
+    const downloadBtn = document.getElementById('downloadPdfBtn');
+
+    resultArea.innerHTML = '';
+    spinner.style.display = 'block';
+    downloadBtn.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        const response = await fetch(`${BASE_URL}/visionOCR`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+        const cleanedText = data.result;
+
+        resultArea.innerHTML = `<div class="ocrResultBox">${cleanedText}</div>`;
+        lastExtractedText = cleanedText; // ✅ 이 줄을 꼭 추가하세요!
+
+        downloadBtn.style.display = 'inline-block';
+    } catch (error) {
+        resultArea.innerText = '❌ OCR 처리 중 오류가 발생했습니다.';
+        console.error(error);
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+async function translateOCR() {
+    const sourceLang = document.getElementById('sourceSelector')?.value || 'auto';
+    const targetLang = document.getElementById('targetSelector')?.value || 'en';
+
+    if (!lastExtractedText || !lastExtractedText.trim()) {
+        alert('먼저 이미지를 스캔해서 텍스트를 추출해주세요.');
+        return;
+    }
+
+    const spinner = document.getElementById('loadingSpinner');
+const resultArea = document.getElementById('ocrResult');
+
+if (!spinner || !resultArea) {
+    console.warn('❗ spinner 또는 resultArea 요소가 없습니다.');
+    return;
+}
+
+
+    await handlePdfScanAndProcess({
+        apiEndpoint: 'translate',
+        boxClass: 'translateBox',
+        resultKey: 'result',
+        extraPayload: {
+            text: lastExtractedText,
+            source: sourceLang,
+            target: targetLang,
+        },
+    });
+}
+
+async function summarizeOCR() {
+  if (!lastExtractedText || !lastExtractedText.trim()) {
+    alert('먼저 이미지를 스캔해서 텍스트를 추출해주세요.');
+    return;
+  }
+
+  await handlePdfScanAndProcess({
+    apiEndpoint: 'summary',
+    boxClass: 'summaryBox',
+    extraPayload: { content: lastExtractedText }
+  });
+}
+

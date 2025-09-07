@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>StoryCraft</title>
+
+        <!-- Favicons -->
+        <link href="assets/img/favicon.png" rel="icon" />
+        <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon" />
+
+        <!-- Fonts -->
+        <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&family=Lato:wght@100;300;400;700;900&family=Nunito:wght@200;300;400;600;700;800;900&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Vendor CSS Files -->
+        <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet" />
+        <link href="assets/vendor/aos/aos.css" rel="stylesheet" />
+        <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet" />
+        <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet" />
+
+        <!-- Main CSS File -->
+        <link href="assets/css/main.css" rel="stylesheet" />
+    </head>
+
+    <body class="index-page">
+        <header id="header" class="header d-flex align-items-center sticky-top">
+            <div class="container position-relative d-flex align-items-center justify-content-between">
+                <a href="index.html" class="logo d-flex align-items-center me-auto me-xl-0">
+                    <h1 class="sitename">StoryCraft</h1>
+                </a>
+                <nav id="navmenu" class="navmenu">
+                    <ul>
+                        <li><a href="search.html">Search</a></li>
+                        <li><a href="rewrite.html">Rewrite</a></li>
+                        <li><a href="change-style.html">Style</a></li>
+                        <li><a href="grammar.html">Grammar</a></li>
+                        <li><a href="honorific.html">Honorific</a></li>
+                        <li><a href="translate.html">Translate</a></li>
+                        <li><a href="scan.html">Scan</a></li>
+                        <li><a href="scan-image.html" class="active">OCR</a></li>
+                    </ul>
+                    <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <section id="portfolio" class="portfolio section">
+                <div class="container section-title" data-aos="fade-up">
+                    <h2>OCR 이미지 스캔</h2>
+                    <div class="container">
+
+                        <!-- 📸 파일 업로드 영역 (scan.html 스타일로 통일됨) -->
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <div class="mb-3" style="text-align: center;">
+                                <input type="file" id="imageFile" name="image" accept="image/*" required />
+                            </div>
+
+                            <div style="text-align: center;">
+                                <button
+                                    type="button"
+                                    onclick="performOCR()"
+                                    class="resultBtn_SC"
+                                >
+                                    이미지 스캔
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="loadingSpinner" style="display: none; text-align: center; margin-top: 20px;">
+                            <div class="spinner"></div>
+                            <p style="color: gray;">이미지 처리 중입니다. 잠시만 기다려주세요...</p>
+                        </div>
+
+                        <div id="ocrResult" class="resultArea_SC mt-3"></div>
+
+                            <div style="text-align: center; margin-bottom: 10px;">
+        <select id="sourceSelector">
+            <option value="auto" selected>
+                                            자동 감지
+                                        </option>
+                                        <option value="gu">구자라트어</option>
+                                        <option value="el">그리스어</option>
+                                        <option value="ne">네팔어</option>
+                                        <option value="nl">네덜란드어</option>
+                                        <option value="de">독일어</option>
+                                        <option value="ru">러시아어</option>
+                                        <option value="ro">루마니아어</option>
+                                        <option value="mr">마라티어</option>
+                                        <option value="ms">말레이어</option>
+                                        <option value="vi">베트남어</option>
+                                        <option value="bn">벵골어</option>
+                                        <option value="sv">스웨덴어</option>
+                                        <option value="es">스페인어</option>
+                                        <option value="af">아프리칸스어</option>
+                                        <option value="ar">아랍어</option>
+                                        <option value="en">영어</option>
+                                        <option value="uk">우크라이나어</option>
+                                        <option value="it">이탈리아어</option>
+                                        <option value="ja">일본어</option>
+                                        <option value="jv">자바어</option>
+                                        <option value="ka">조지아어</option>
+                                        <option value="zh-CN">
+                                            중국어(간체)
+                                        </option>
+                                        <option value="zh-TW">
+                                            중국어(번체)
+                                        </option>
+                                        <option value="ta">타밀어</option>
+                                        <option value="th">태국어</option>
+                                        <option value="tr">터키어</option>
+                                        <option value="fa">페르시아어</option>
+                                        <option value="pt">포르투갈어</option>
+                                        <option value="pl">폴란드어</option>
+                                        <option value="fr">프랑스어</option>
+                                        <option value="ko">한국어</option>
+                                        <option value="hi">힌디어</option>
+                                    </select>
+
+                                    <select id="targetSelector"><option value="gu">구자라트어</option>
+                                        <option value="el">그리스어</option>
+                                        <option value="ne">네팔어</option>
+                                        <option value="nl">네덜란드어</option>
+                                        <option value="de">독일어</option>
+                                        <option value="ru">러시아어</option>
+                                        <option value="ro">루마니아어</option>
+                                        <option value="mr">마라티어</option>
+                                        <option value="ms">말레이어</option>
+                                        <option value="vi">베트남어</option>
+                                        <option value="bn">벵골어</option>
+                                        <option value="sv">스웨덴어</option>
+                                        <option value="es">스페인어</option>
+                                        <option value="af">아프리칸스어</option>
+                                        <option value="ar">아랍어</option>
+                                        <option value="en">영어</option>
+                                        <option value="uk">우크라이나어</option>
+                                        <option value="it">이탈리아어</option>
+                                        <option value="ja">일본어</option>
+                                        <option value="jv">자바어</option>
+                                        <option value="ka">조지아어</option>
+                                        <option value="zh-CN">
+                                            중국어(간체)
+                                        </option>
+                                        <option value="zh-TW">
+                                            중국어(번체)
+                                        </option>
+                                        <option value="ta">타밀어</option>
+                                        <option value="th">태국어</option>
+                                        <option value="tr">터키어</option>
+                                        <option value="fa">페르시아어</option>
+                                        <option value="pt">포르투갈어</option>
+                                        <option value="pl">폴란드어</option>
+                                        <option value="fr">프랑스어</option>
+                                        <option value="ko">한국어</option>
+                                        <option value="hi">힌디어</option></select>
+
+                            
+
+                        <div class="button-row mt-4">
+<button type="button" onclick="translateOCR()" class="btn-green">🌐 번역하기</button>
+<button type="button" onclick="summarizeOCR()" class="btn-purple">📝 요약하기</button>
+
+
+
+
+                        <button
+                            type="button"
+                            id="downloadPdfBtn"
+                            class="resultBtn_SC resultAreaPdfDownloadBtn_SC"
+                            style="display: none;"
+                        >
+                            결과를 PDF로 다운로드
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer id="footer" class="footer">
+            <!-- 기존 푸터 그대로 복붙 -->
+        </footer>
+
+        <!-- Scroll Top -->
+        <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center">
+            <i class="bi bi-arrow-up-short"></i>
+        </a>
+
+        <!-- Preloader -->
+        <div id="preloader"></div>
+
+        <!-- Vendor JS Files -->
+        <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/vendor/aos/aos.js"></script>
+        <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+        <script src="assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+        <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+        <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+        <!-- Main JS File -->
+        <script src="assets/js/main.js"></script>
+        <script src="assets/js/script.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+        <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const downloadBtn = document.getElementById('downloadPdfBtn');
+    const resultArea = document.getElementById('ocrResult');
+
+    if (downloadBtn && resultArea) {
+      downloadBtn.addEventListener('click', () => {
+        const opt = {
+          margin: 0.5,
+          filename: 'OCR_결과.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(resultArea).save();
+      });
+    }
+  });
+</script>
+
+    </body>
+</html>
