@@ -39,22 +39,22 @@ os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 os.environ.pop("VISION_KEY_PATH", None)
 
 
-allow_origins=[
-  "https://hj-sp.github.io",
-  "http://localhost:5500",
-  "http://127.0.0.1:5500",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
+ALLOW_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "https://hj-sp.github.io",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://hj-sp.github.io"],
+    allow_origins=ALLOW_ORIGINS,  
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["*"],          
+    allow_headers=["*"],         
     expose_headers=["*"],
-    max_age=3600,
+    max_age=600,
 )
 
 @app.get("/whoami")

@@ -1459,7 +1459,10 @@ async function performOCR() {
     resultArea.innerHTML = `<div class="ocrResultBox">${cleanedText}</div>`;
     // 전역 저장 (다음 단계: 요약/번역)
     window.lastExtractedText = cleanedText;
-
+    if (typeof lastExtractedText !== 'undefined') {
+      lastExtractedText = cleanedText;
+    }
+    
     if (downloadBtn) downloadBtn.style.display = 'inline-block';
   } catch (err) {
     console.error('OCR 요청 오류:', err);
