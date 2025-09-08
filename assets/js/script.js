@@ -1403,11 +1403,17 @@ function saveAsPDF(content, filename = 'converted.pdf') {
 async function performOCR() {
   const fileInput  = document.getElementById('imageFile');
   const spinner    = document.getElementById('loadingSpinner');
-  const resultArea = document.getElementById('ocrResult');
+  const resultArea = document.getElementById('ocrResult') || document.getElementById('resultArea');
   const downloadBtn= document.getElementById('downloadPdfBtn');
 
   if (!fileInput || !fileInput.files?.[0]) {
     alert('이미지를 업로드해주세요.');
+    return;
+  }
+
+  if (!resultArea) {
+    console.error('❗ 결과 영역(#ocrResult 또는 #resultArea)이 없습니다.');
+    alert('결과를 표시할 영역이 없습니다. 페이지 구조를 확인해주세요.');
     return;
   }
 
