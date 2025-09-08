@@ -23,6 +23,7 @@ from PyPDF2 import PdfReader
 import tempfile
 from google.oauth2 import service_account
 from google.cloud import translate_v2 as google_translate
+from google.cloud import vision
 import html
 import re
 import torch
@@ -34,21 +35,62 @@ load_dotenv()
 
 app = FastAPI()
 
-origins = [
-    "https://hj-sp.github.io",   
-    "http://localhost:5500",     
-    "http://127.0.0.1:5500",
+os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+os.environ.pop("VISION_KEY_PATH", None)
+
+
+allow_origins=[
+  "https://hj-sp.github.io",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, 
-    # allow_origins=["https://hj-sp.github.io"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["https://hj-sp.github.io"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
+@app.get("/whoami")
+def whoami():
+   
+    return {
+        "ok": True,
+        "has_json_vision": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")),
+        "has_json_translate": bool(os.environ.get("GOOGLE_CREDENTIALS_JSON")),
+        "has_path_var": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")),
+        "routes": [r.path for r in app.routes], 
+    }
+
+@app.get("/cors-test")
+def cors_test():
+    return {"ok": True}
+
+
+# ---- Vision (GOOGLE_APPLICATION_CREDENTIALS_JSON) ----
+try:
+    _vision_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+    _vision_creds = service_account.Credentials.from_service_account_info(_vision_info)
+    vision_client = vision.ImageAnnotatorClient(credentials=_vision_creds)
+except Exception as e:
+    # 초기화 실패 시 디버그 로그
+    print("[Vision Init Error]", e)
+    vision_client = None
+
+# ---- Translate (GOOGLE_CREDENTIALS_JSON) ----
+try:
+    _trans_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
+    _trans_creds = service_account.Credentials.from_service_account_info(_trans_info)
+    translate_client = google_translate.Client(credentials=_trans_creds)
+except Exception as e:
+    print("[Translate Init Error]", e)
+    translate_client = None
 
 class TextInput(BaseModel):
     content: str
@@ -73,8 +115,6 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 PAPAGO_CLIENT_ID = os.getenv("PAPAGO_CLIENT_ID")
 PAPAGO_CLIENT_SECRET = os.getenv("PAPAGO_CLIENT_SECRET")
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./translate-key.json"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./vision-key.json"
 
 @app.post("/searchExample")
 async def search_example(data: TextInput):
@@ -411,6 +451,7 @@ async def cohere_honorific(content: TextInput):
 
     return {"result": full_text}
 
+
 @app.post("/translate")
 async def translate_text(request: Request):
     body = await request.json()
@@ -418,24 +459,22 @@ async def translate_text(request: Request):
     source = body.get("source", "None")
     target = body.get("target", "en")
 
+    if not text:
+        return {"error": "No text provided"}
+
+    if translate_client is None:
+        return {"error": "Translate client not initialized. Check GOOGLE_CREDENTIALS_JSON."}
+
     try:
-        # ✅ 환경변수에서 키 정보 불러오기
-        credentials_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_info)
-
-        # ✅ credentials 포함한 클라이언트 생성
-        client = google_translate.Client(credentials=credentials)
-
         if source and source != "auto":
-            result = client.translate(
-                text, source_language=source, target_language=target)
+            result = translate_client.translate(
+                text, source_language=source, target_language=target
+            )
         else:
-            result = client.translate(text, target_language=target)
+            result = translate_client.translate(text, target_language=target)
 
         translated_clean = html.unescape(result["translatedText"])
         return {"result": translated_clean}
-
     except Exception as e:
         return {"error": f"Google 번역 API 호출 오류: {str(e)}"}
 
@@ -481,23 +520,20 @@ def clean_ocr_text(text: str) -> str:
 @app.post("/visionOCR")
 async def vision_ocr(image: UploadFile = File(...)):
     try:
-        contents = await image.read()
+        if vision_client is None:
+            return {"result": "Vision client not initialized. Check GOOGLE_APPLICATION_CREDENTIALS_JSON."}
 
-        client = vision.ImageAnnotatorClient()
+        contents = await image.read()
         image_content = vision.Image(content=contents)
-        response = client.text_detection(image=image_content)
+        response = vision_client.text_detection(image=image_content)
 
         texts = response.text_annotations
-
         if not texts:
             return {"result": "텍스트를 찾을 수 없습니다."}
 
         raw_text = texts[0].description
         cleaned_text = clean_ocr_text(raw_text)
         return {"result": cleaned_text}
-
-
     except Exception as e:
         print("❌ 서버 에러:", e)
         return {"result": f"서버 에러: {e}"}
-    

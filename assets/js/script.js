@@ -1401,44 +1401,72 @@ function saveAsPDF(content, filename = 'converted.pdf') {
 }
 
 async function performOCR() {
-    const fileInput = document.getElementById('imageFile');
-    const file = fileInput.files[0];
+  const fileInput  = document.getElementById('imageFile');
+  const spinner    = document.getElementById('loadingSpinner');
+  const resultArea = document.getElementById('ocrResult');
+  const downloadBtn= document.getElementById('downloadPdfBtn');
 
-    if (!file) {
-        alert('이미지를 업로드해주세요.');
-        return;
+  if (!fileInput || !fileInput.files?.[0]) {
+    alert('이미지를 업로드해주세요.');
+    return;
+  }
+
+  // 중복 클릭 방지
+  const btn = document.querySelector('.resultBtn_SC');
+  if (btn) { btn.disabled = true; }
+
+  resultArea.innerHTML = '';
+  if (spinner) spinner.style.display = 'block';
+  if (downloadBtn) downloadBtn.style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]); // 서버 파라미터 이름과 일치
+
+  // 타임아웃(네트워크 뻗을 때 대비)
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 30000);
+
+  try {
+    const res = await fetch(`${BASE_URL}/visionOCR`, {
+      method: 'POST',
+      body: formData,
+      signal: ctrl.signal,
+    });
+
+    // 🔎 CORS/서버 에러 가시화
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${res.statusText} ${text ? '- ' + text : ''}`);
     }
 
-    const spinner = document.getElementById('loadingSpinner');
-    const resultArea = document.getElementById('ocrResult');
-    const downloadBtn = document.getElementById('downloadPdfBtn');
+    // JSON 파싱 방어
+    let data;
+    try { data = await res.json(); }
+    catch { throw new Error('서버 응답이 JSON 형식이 아닙니다.'); }
 
-    resultArea.innerHTML = '';
-    spinner.style.display = 'block';
-    downloadBtn.style.display = 'none';
-
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-        const response = await fetch(`${BASE_URL}/visionOCR`, {
-            method: 'POST',
-            body: formData,
-        });
-
-        const data = await response.json();
-        const cleanedText = data.result;
-
-        resultArea.innerHTML = `<div class="ocrResultBox">${cleanedText}</div>`;
-        lastExtractedText = cleanedText; // ✅ 이 줄을 꼭 추가하세요!
-
-        downloadBtn.style.display = 'inline-block';
-    } catch (error) {
-        resultArea.innerText = '❌ OCR 처리 중 오류가 발생했습니다.';
-        console.error(error);
-    } finally {
-        spinner.style.display = 'none';
+    const cleanedText = data?.result || data?.text || '';
+    if (!cleanedText) {
+      resultArea.innerText = '텍스트를 추출하지 못했습니다.';
+      return;
     }
+
+    resultArea.innerHTML = `<div class="ocrResultBox">${cleanedText}</div>`;
+    // 전역 저장 (다음 단계: 요약/번역)
+    window.lastExtractedText = cleanedText;
+
+    if (downloadBtn) downloadBtn.style.display = 'inline-block';
+  } catch (err) {
+    console.error('OCR 요청 오류:', err);
+    // CORS일 때 힌트 메시지
+    const maybeCORS = String(err).includes('TypeError: Failed to fetch') || String(err).includes('CORS');
+    resultArea.innerText = maybeCORS
+      ? '⚠️ CORS 또는 네트워크 오류로 요청이 차단되었습니다. 서버 CORS 설정을 확인해주세요.'
+      : '❌ OCR 처리 중 오류가 발생했습니다.';
+  } finally {
+    clearTimeout(t);
+    if (spinner) spinner.style.display = 'none';
+    if (btn) { btn.disabled = false; }
+  }
 }
 
 async function translateOCR() {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
@@ -34,6 +34,7 @@
         <a href="index.html" class="logo d-flex align-items-center me-auto me-xl-0">
           <h1 class="sitename">StoryCraft</h1>
         </a>
+
         <nav id="navmenu" class="navmenu">
           <ul>
             <li><a href="search.html">Search</a></li>
@@ -51,25 +52,33 @@
     </header>
 
     <main class="main">
-      <section id="portfolio" class="portfolio section">
+      <section id="pricing" class="pricing section">
         <div class="container section-title" data-aos="fade-up">
-          <h2>OCR 이미지 스캔</h2>
-
+          <h2>OCR Image Scan</h2>
           <div class="container">
-            <!-- 파일 업로드 -->
+            <!-- 업로드 -->
             <form id="uploadForm" enctype="multipart/form-data">
-              <div class="mb-3" style="text-align:center;">
-                <input type="file" id="imageFile" name="image" accept="image/*" required />
-              </div>
+              <input
+                type="file"
+                id="imageFile"
+                name="image"
+                accept="image/*"
+                class="pdfScanFileChooseBtn_SC"
+              />
 
-              <div style="text-align:center; margin-bottom: 6px;">
-                <button type="button" onclick="performOCR()" class="resultBtn_SC">
+              <!-- 도구행 -->
+              <div>
+                <!-- 1) 먼저 이미지 스캔 -->
+                <button
+                  id="imageScanBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="performOCR()"
+                >
                   이미지 스캔
                 </button>
-              </div>
 
-              <!-- (scan.html과 동일한 컨트롤들) -->
-              <div style="text-align:center">
+                <!-- 2) 문체 변경 (scan.html과 같은 UX) -->
                 <label for="styleSelect">문체 선택:</label>
                 <select id="styleSelect">
                   <option value="casual">구어체</option>
@@ -77,17 +86,68 @@
                   <option value="literary">문학체</option>
                   <option value="academic">학술체</option>
                 </select>
+                <button
+                  id="imgStyleBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="applyStyleChangeFromOCR(document.getElementById('styleSelect').value)"
+                >
+                  문체 변경
+                </button>
 
-                <button id="pdfScanStyleBtn"    type="button" class="resultBtn_SC">문체 변경</button>
-                <button id="pdfScanRewriteBtn"  type="button" class="resultBtn_SC">첨삭</button>
-                <button id="pdfScanSummaryBtn"  type="button" class="resultBtn_SC">요약</button>
-                <button id="pdfScanExpandBtn"   type="button" class="resultBtn_SC">확장</button>
-                <button id="pdfScanGrammarBtn"  type="button" class="resultBtn_SC">문법 교정</button>
-                <button id="pdfScanHonorificBtn"type="button" class="resultBtn_SC">경어체</button>
-                <button id="pdfScanInformalBtn" type="button" class="resultBtn_SC">평어체</button>
+                <!-- 3) 첨삭/요약/확장/문법/말투 -->
+                <button
+                  id="imgRewriteBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="rewriteFromOCR()"
+                >
+                  첨삭
+                </button>
+                <button
+                  id="imgSummaryBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="summarizeOCR()"
+                >
+                  요약
+                </button>
+                <button
+                  id="imgExpandBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="expandFromOCR()"
+                >
+                  확장
+                </button>
+                <button
+                  id="imgGrammarBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="grammarFixFromOCR()"
+                >
+                  문법 교정
+                </button>
+                <button
+                  id="imgHonorificBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="convertHonorificFromOCR('formal')"
+                >
+                  경어체
+                </button>
+                <button
+                  id="imgInformalBtn"
+                  type="button"
+                  class="resultBtn_SC"
+                  onclick="convertHonorificFromOCR('informal')"
+                >
+                  평어체
+                </button>
 
                 <hr />
-                <div style="margin-top: 10px">
+                <!-- 4) 번역 (scan.html과 동일한 셀렉터 UX) -->
+                <div style="margin-top:10px">
                   <label for="sourceSelector">원본 언어:</label>
                   <select id="sourceSelector">
                     <option value="auto" selected>자동 감지</option>
@@ -161,7 +221,12 @@
                     <option value="hi">힌디어</option>
                   </select>
 
-                  <button id="pdfScanTranslateBtn" type="button" class="resultBtn_SC">
+                  <button
+                    id="imgTranslateBtn"
+                    type="button"
+                    class="resultBtn_SC"
+                    onclick="applyTranslation()"
+                  >
                     번역하기 🌍
                   </button>
                 </div>
@@ -174,24 +239,21 @@
               <p style="margin-top:5px; color:gray">⏳ 처리 중입니다...</p>
             </div>
 
-            <!-- 문법 테이블(scan.html과 동일 구조) -->
+            <!-- 문법 테이블 (scan.html 호환) -->
             <div class="resultBox grammarBox" id="grammarBox" style="display:none">
               <table id="grammarTable" class="grammar-table">
                 <thead>
-                  <tr>
-                    <th>교정문</th>
-                    <th>관련 규범&설명</th>
-                  </tr>
+                  <tr><th>교정문</th><th>관련 규범&설명</th></tr>
                 </thead>
                 <tbody></tbody>
               </table>
             </div>
 
-            <!-- 결과 영역: scan.html과 동일 id -->
-            <div id="resultArea" class="resultArea_SC" style="text-align:left"></div>
+            <!-- 결과 영역 -->
+            <div id="ocrResult" class="resultArea_SC" style="text-align:left"></div>
 
-            <!-- PDF 저장 버튼: id 통일 -->
-            <button id="pdfDownloadBtn" class="resultBtn_SC resultAreaPdfDownloadBtn_SC">
+            <!-- PDF 다운로드 -->
+            <button id="downloadPdfBtn" class="resultBtn_SC resultAreaPdfDownloadBtn_SC" style="display:none;">
               결과를 PDF로 다운로드
             </button>
           </div>
@@ -199,7 +261,9 @@
       </section>
     </main>
 
-    <footer id="footer" class="footer"></footer>
+    <footer id="footer" class="footer">
+      <!-- 기존 푸터 유지 -->
+    </footer>
 
     <!-- Scroll Top -->
     <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center">
@@ -219,7 +283,31 @@
 
     <!-- Main JS File -->
     <script src="assets/js/main.js"></script>
-    <script src="assets/js/script.js"></script>
+
+    <!-- 앱 스크립트 (전역 함수 필요: type="module" 쓰지 마세요) -->
+    <script src="assets/js/script.js" defer></script>
+
+    <!-- html2pdf -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+    <!-- PDF 저장 핸들러 -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const downloadBtn = document.getElementById('downloadPdfBtn');
+        const resultArea  = document.getElementById('ocrResult');
+        if (downloadBtn && resultArea) {
+          downloadBtn.addEventListener('click', () => {
+            const opt = {
+              margin: 0.5,
+              filename: 'OCR_결과.pdf',
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2 },
+              jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(resultArea).save();
+          });
+        }
+      });
+    </script>
   </body>
 </html>
