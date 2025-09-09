@@ -1164,7 +1164,7 @@ async function pdfScanGrammar() {
     }
 
     // 표 + 교정문만 결과 영역에 출력
-    if (grammarBox) grammarBox.style.display = 'block';
+    /* if (grammarBox) grammarBox.style.display = 'block';
     if (resultArea) {
       const out = correctedOnly.length ? correctedOnly.join('\n') : '[틀린 부분이 없거나 교정 결과가 비어 있습니다]';
       const pre = document.createElement('pre');
@@ -1173,7 +1173,9 @@ async function pdfScanGrammar() {
       pre.textContent = out;
       resultArea.innerHTML = '';
       resultArea.appendChild(pre);
-    }
+    }*/
+
+    if (resultArea) resultArea.innerHTML = '';
 
     if (!hasError) alert('🎉 틀린 부분이 없습니다.');
 
@@ -1183,7 +1185,7 @@ async function pdfScanGrammar() {
       const newBtn = pdfBtn.cloneNode(true);
       pdfBtn.replaceWith(newBtn);
       newBtn.style.display = 'inline-block';
-      newBtn.addEventListener('click', () => saveAsPDF(grammarTable || resultArea, '문법 교정.pdf'));
+       newBtn.addEventListener('click', () => saveAsPDF(grammarBox || grammarTable, '문법 교정.pdf'));
     }
   } catch (e) {
     console.error('문법 교정 실패:', e);
