@@ -1052,8 +1052,8 @@ async function handlePdfScanAndProcess({
 // }
 
 async function pdfScanGrammar() {
-    const fileInput = document.getElementById('pdfFile');
-    const file = fileInput.files[0];
+    const pdfEl = document.getElementById('pdfFile');
+    const file = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
 
     const grammarTable = document.getElementById('grammarTable');
     const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
@@ -1066,9 +1066,20 @@ async function pdfScanGrammar() {
     }
 
     if (!file) {
-        alert('📄 먼저 PDF 파일을 업로드해 주세요.');
-        return;
-    }
+       if (lastExtractedText && lastExtractedText.trim()) {
+         // 바로 문법 교정 호출
+         const grammarResponse = await fetch(`${BASE_URL}/mistralGrammar`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ content: lastExtractedText }),
+         });
+         
+         return;
+       }
+       alert('📄 먼저 PDF를 업로드하거나 이미지를 스캔해 주세요.');
+       return;
+     }
+
     if (!grammarTable || !tbody) {
         alert(
             '❌ grammarTable이 존재하지 않거나 구조가 잘못되었습니다. HTML을 확인하세요.'
