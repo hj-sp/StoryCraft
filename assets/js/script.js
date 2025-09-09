@@ -1175,7 +1175,10 @@ async function pdfScanGrammar() {
       resultArea.appendChild(pre);
     }*/
 
-    if (resultArea) resultArea.innerHTML = '';
+    if (grammarBox && tbody && tbody.children.length > 0) {
+          grammarBox.style.display = 'block';
+          if (resultArea) resultArea.style.display = 'none';  
+        }
 
     if (!hasError) alert('🎉 틀린 부분이 없습니다.');
 
@@ -1191,6 +1194,7 @@ async function pdfScanGrammar() {
     console.error('문법 교정 실패:', e);
     // CORS처럼 보이는 경우: 프록시(413/502 등)일 가능성이 큼
     if (resultArea) {
+      resultArea.style.display = 'block';
       resultArea.textContent =
         String(e).includes('HTTP 413') ? '⚠️ 텍스트가 너무 길어 일부만 보내 주세요.'
         : String(e).includes('HTTP 502') ? '⚠️ 서버가 잠시 응답하지 않았습니다. 잠시 후 다시 시도해주세요.'
