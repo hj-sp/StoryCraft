@@ -957,11 +957,12 @@ async function handlePdfScanAndProcess({
 
         let requestBody = {};
         if (apiEndpoint === 'gptStyleChange') {
-            requestBody = { text: extractedText, ...extraPayload };
-        } else {
-            requestBody = { content: extractedText, ...extraPayload };
-        }
-
+       requestBody = { text: extractedText, ...extraPayload };
+     } else if (apiEndpoint === 'translate') {
+       requestBody = { text: extractedText, ...extraPayload }; // 번역은 text로 통일
+     } else {
+       requestBody = { content: extractedText, ...extraPayload };
+     }
         const apiResponse = await fetch(`${BASE_URL}/${apiEndpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1052,137 +1053,133 @@ async function handlePdfScanAndProcess({
 // }
 
 async function pdfScanGrammar() {
-    const pdfEl = document.getElementById('pdfFile');
-    const file = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
+  const pdfEl = document.getElementById('pdfFile');
+  const pdfFile = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
 
-    const grammarTable = document.getElementById('grammarTable');
-    const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
-    const resultArea = document.getElementById('resultArea');
-    const spinner = document.getElementById('loadingSpinner');
-    const grammarBox = document.getElementById('grammarBox');
+  const grammarBox  = document.getElementById('grammarBox');
+  const grammarTable = document.getElementById('grammarTable');
+  const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
 
-    if (grammarBox) {
-        grammarBox.style.display = 'block';
+  const resultArea = document.getElementById('resultArea') || document.getElementById('ocrResult');
+  const spinner = document.getElementById('loadingSpinner');
+
+  if (tbody) while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  if (resultArea) resultArea.textContent = '';
+  if (spinner) spinner.style.display = 'block';
+  if (grammarBox) grammarBox.style.display = 'none'; 
+
+  let sourceText = '';
+  try {
+    if (pdfFile) {
+      const fd = new FormData();
+      fd.append('pdf', pdfFile);
+      const scanRes = await fetch(`${BASE_URL}/pdfScan`, { method: 'POST', body: fd });
+      if (!scanRes.ok) throw new Error(`pdfScan HTTP ${scanRes.status}`);
+      const scanJson = await scanRes.json();
+      sourceText = (scanJson.text || '').toString().trim();
+    } else {
+      const lt = (typeof lastExtractedText !== 'undefined' && lastExtractedText) || window.lastExtractedText;
+      sourceText = (lt || '').toString().trim();
+    }
+  } catch (e) {
+    console.error('pdfScanGrammar: 원문 확보 실패', e);
+  }
+
+  if (!sourceText) {
+    if (spinner) spinner.style.display = 'none';
+    if (grammarBox) grammarBox.style.display = 'none';
+    alert('📄 PDF를 업로드하거나 📷 이미지를 스캔해 텍스트를 먼저 추출해주세요.');
+    return;
+  }
+
+  
+  const MAX_LEN = 8000;
+  if (sourceText.length > MAX_LEN) {
+    console.warn('⚠️ 길이가 길어 앞부분만 보냅니다:', MAX_LEN);
+    sourceText = sourceText.slice(0, MAX_LEN);
+  }
+
+  try {
+   
+    const resp = await fetch(`${BASE_URL}/mistralGrammar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: sourceText }),
+    });
+    if (!resp.ok) throw new Error(`mistralGrammar HTTP ${resp.status}`);
+    const data = await resp.json();
+    const text = (data.result || '').toString();
+
+    
+    const lines = text
+      .split(/\n+/)
+      .map(s => s.trim())
+      .filter(Boolean); 
+
+    const removeIcons = (s) => s.replace(/^[^\w가-힣]+/, '').trim();
+
+    let hasError = false;
+    const correctedOnly = [];
+
+    for (let i = 0; i < lines.length; i += 4) {
+      const cleanLine1 = removeIcons(lines[i] || '');
+      const cleanLine2 = removeIcons(lines[i + 1] || '');
+      const rule1 = lines[i + 2] || '';
+      const rule2 = lines[i + 3] || '';
+
+      if (!cleanLine1 && !cleanLine2) continue;
+      if (cleanLine1 === cleanLine2) continue;
+
+      hasError = true;
+      correctedOnly.push(cleanLine2);
+
+      if (tbody) {
+        const row = document.createElement('tr');
+        const tdLeft = document.createElement('td');
+        const tdRight = document.createElement('td');
+        tdRight.classList.add('right');
+
+        
+        tdLeft.innerText = '❌ ' + cleanLine1 + '\n' + '✅ ' + cleanLine2;
+       
+        tdRight.textContent = rule1 + '\n' + rule2;
+
+        row.appendChild(tdLeft);
+        row.appendChild(tdRight);
+        tbody.appendChild(row);
+      }
     }
 
-    if (!file) {
-       if (lastExtractedText && lastExtractedText.trim()) {
-         // 바로 문법 교정 호출
-         const grammarResponse = await fetch(`${BASE_URL}/mistralGrammar`, {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({ content: lastExtractedText }),
-         });
-         
-         return;
-       }
-       alert('📄 먼저 PDF를 업로드하거나 이미지를 스캔해 주세요.');
-       return;
-     }
+   
+    if (grammarBox) grammarBox.style.display = 'block';
 
-    if (!grammarTable || !tbody) {
-        alert(
-            '❌ grammarTable이 존재하지 않거나 구조가 잘못되었습니다. HTML을 확인하세요.'
-        );
-        return;
+    
+    if (resultArea) {
+      const out = correctedOnly.length ? correctedOnly.join('\n') : '[틀린 부분이 없거나 교정 결과가 비어 있습니다]';
+      const pre = document.createElement('pre');
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.margin = '0';
+      pre.textContent = out;
+      resultArea.innerHTML = ''; 
+      resultArea.appendChild(pre);
     }
 
-    resultArea.innerHTML = '';
-
-    while (tbody.firstChild) {
-        tbody.removeChild(tbody.firstChild);
+    if (!hasError) alert('🎉 틀린 부분이 없습니다.');
+   
+    const pdfBtn = document.getElementById('pdfDownloadBtn');
+    if (pdfBtn) {
+      const newBtn = pdfBtn.cloneNode(true);
+      pdfBtn.replaceWith(newBtn);
+      newBtn.style.display = 'inline-block';
+      newBtn.addEventListener('click', () => saveAsPDF(resultArea, '문법 교정.pdf'));
     }
-
-    spinner.style.display = 'block';
-
-    const formData = new FormData();
-    formData.append('pdf', file);
-
-    try {
-        const response = await fetch(`${BASE_URL}/pdfScan`, {
-            method: 'POST',
-            body: formData,
-        });
-        const result = await response.json();
-        const grammarOriginalText =
-            result.text || '[텍스트를 추출하지 못했습니다]';
-
-        const grammarResponse = await fetch(`${BASE_URL}/mistralGrammar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: grammarOriginalText }),
-        });
-
-        const grammarData = await grammarResponse.json();
-        const text = grammarData.result;
-
-        if (text) {
-            const lines = text
-                .split(/\n+/)
-                .map((line) => line.trim())
-                .filter((line) => line.length > 0);
-            const removeIcons = (txt) => txt.replace(/^[^\w가-힣]+/, '').trim();
-            let hasError = false;
-
-            for (let i = 0; i < lines.length; i += 4) {
-                const cleanLine1 = removeIcons(lines[i]);
-                const cleanLine2 = removeIcons(lines[i + 1]);
-
-                if (cleanLine1 === cleanLine2) continue;
-
-                hasError = true;
-
-                const row = document.createElement('tr');
-                const tdLeft = document.createElement('td');
-                const tdRight = document.createElement('td');
-                tdRight.classList.add('right');
-
-                tdLeft.innerHTML = `<span class="sentence">${textDiff(
-                    cleanLine1,
-                    cleanLine2
-                )}</span>`;
-                tdRight.textContent =
-                    (lines[i + 2] || '') + '\n' + (lines[i + 3] || '');
-
-                const copyBtn = document.createElement('button');
-                copyBtn.innerText = '📋';
-                copyBtn.title = '교정문 복사';
-                copyBtn.style =
-                    'border: none; background: transparent; cursor: pointer; font-size: 16px;';
-                copyBtn.onclick = () => {
-                    navigator.clipboard.writeText(cleanLine2.trim());
-                    copyBtn.innerText = '✅';
-                    setTimeout(() => (copyBtn.innerText = '📋'), 1000);
-                };
-
-                tdLeft.appendChild(copyBtn);
-                row.appendChild(tdLeft);
-                row.appendChild(tdRight);
-                tbody.appendChild(row);
-            }
-
-            if (!hasError) alert('🎉 틀린 부분이 없습니다.');
-
-            const pdfBtn = document.getElementById('pdfDownloadBtn');
-            if (pdfBtn) {
-                pdfBtn.onclick = function () {
-                    saveAsPDF(grammarTable, '스캔 문법 교정.pdf');
-                };
-            }
-        } else {
-            resultArea.innerText = grammarData.error
-                ? `⚠️ 오류: ${grammarData.error}\n🔍 상세: ${
-                      grammarData.detail || '없음'
-                  }`
-                : '⚠️ 알 수 없는 오류가 발생했습니다.';
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        resultArea.textContent =
-            '[에러 발생: PDF를 처리하거나 문법 교정에 실패했습니다]';
-    } finally {
-        spinner.style.display = 'none';
-    }
+  } catch (e) {
+    console.error('문법 교정 실패:', e);
+    if (resultArea) resultArea.textContent = '❌ 문법 교정 중 오류가 발생했습니다.';
+    if (grammarBox) grammarBox.style.display = 'none'; 
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+  }
 }
 
 async function pdfScanStyle() {
@@ -1304,11 +1301,9 @@ async function pdfScanTranslate() {
         apiEndpoint: 'translate',
         boxClass: 'translateBox',
         resultKey: 'result',
-        extraPayload: {
-            text: textToTranslate,
-            source: sourceLang,
-            target: targetLang,
-        },
+        extraPayload: { 
+            source: sourceLang, 
+            target: targetLang },
     });
 }
 
@@ -1477,6 +1472,9 @@ async function performOCR() {
     if (typeof lastExtractedText !== 'undefined') {
       lastExtractedText = cleanedText;
     }
+    
+    const imgEl = document.getElementById('imageFile');
+    if (imgEl) imgEl.value = '';
 
     if (downloadBtn) downloadBtn.style.display = 'inline-block';
   } catch (err) {
@@ -1503,23 +1501,20 @@ async function translateOCR() {
     }
 
     const spinner = document.getElementById('loadingSpinner');
-const resultArea = document.getElementById('ocrResult');
-
-if (!spinner || !resultArea) {
-    console.warn('❗ spinner 또는 resultArea 요소가 없습니다.');
-    return;
-}
-
+    
+    const resultArea = document.getElementById('ocrResult') || document.getElementById('resultArea');
+    
+    if (!spinner) {
+      console.warn('❗ spinner 요소가 없습니다.');
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'translate',
         boxClass: 'translateBox',
         resultKey: 'result',
-        extraPayload: {
-            text: lastExtractedText,
-            source: sourceLang,
-            target: targetLang,
-        },
+        extraPayload: { 
+            source: sourceLang, 
+            target: targetLang },
     });
 }
 
