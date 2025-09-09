@@ -905,10 +905,14 @@ async function handlePdfScanAndProcess({
     extraPayload = {},
 }) {
     const resultArea = document.getElementById('resultArea') || document.getElementById('ocrResult');
-    const fileInput  = document.getElementById('pdfFile')   || document.getElementById('imageFile');
-    const file = fileInput ? fileInput.files[0] : null;
-
-    const spinner = document.getElementById('loadingSpinner');
+     const pdfEl   = document.getElementById('pdfFile');
+     const pdfFile = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
+     const isPdf   = pdfFile && (
+       (pdfFile.type && pdfFile.type.includes('pdf')) || /\.pdf$/i.test(pdfFile.name)
+     );
+     const file = isPdf ? pdfFile : null;
+     
+     const spinner = document.getElementById('loadingSpinner');
     if (!spinner || !resultArea) {
         console.error('❗ spinner 또는 resultArea 요소가 없습니다.');
         return;
@@ -1462,7 +1466,7 @@ async function performOCR() {
     if (typeof lastExtractedText !== 'undefined') {
       lastExtractedText = cleanedText;
     }
-    
+
     if (downloadBtn) downloadBtn.style.display = 'inline-block';
   } catch (err) {
     console.error('OCR 요청 오류:', err);
