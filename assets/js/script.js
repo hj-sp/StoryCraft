@@ -1056,67 +1056,69 @@ async function pdfScanGrammar() {
   const pdfEl = document.getElementById('pdfFile');
   const pdfFile = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
 
-  const grammarBox  = document.getElementById('grammarBox');
+  const grammarBox   = document.getElementById('grammarBox');
   const grammarTable = document.getElementById('grammarTable');
-  const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
+  const tbody        = grammarTable ? grammarTable.querySelector('tbody') : null;
+  const resultArea   = document.getElementById('resultArea') || document.getElementById('ocrResult');
+  const spinner      = document.getElementById('loadingSpinner');
 
-  const resultArea = document.getElementById('resultArea') || document.getElementById('ocrResult');
-  const spinner = document.getElementById('loadingSpinner');
-
+  // 초기화
   if (tbody) while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
   if (resultArea) resultArea.textContent = '';
+  if (grammarBox) grammarBox.style.display = 'none';
   if (spinner) spinner.style.display = 'block';
-  if (grammarBox) grammarBox.style.display = 'none'; 
 
+  // 0) 웜업(콜드스타트/프리플라이트 완화용)
+  try { await fetch(`${BASE_URL}/whoami`, { cache: 'no-store' }); } catch {}
+
+  // 1) 원문 확보: PDF 우선, 없으면 OCR 텍스트
   let sourceText = '';
   try {
     if (pdfFile) {
       const fd = new FormData();
       fd.append('pdf', pdfFile);
-      const scanRes = await fetch(`${BASE_URL}/pdfScan`, { method: 'POST', body: fd });
-      if (!scanRes.ok) throw new Error(`pdfScan HTTP ${scanRes.status}`);
-      const scanJson = await scanRes.json();
-      sourceText = (scanJson.text || '').toString().trim();
+      const res = await fetch(`${BASE_URL}/pdfScan`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(`pdfScan HTTP ${res.status}`);
+      const js = await res.json();
+      sourceText = (js.text || '').toString().trim();
     } else {
       const lt = (typeof lastExtractedText !== 'undefined' && lastExtractedText) || window.lastExtractedText;
       sourceText = (lt || '').toString().trim();
     }
   } catch (e) {
-    console.error('pdfScanGrammar: 원문 확보 실패', e);
+    console.error('원문 확보 실패:', e);
   }
 
   if (!sourceText) {
     if (spinner) spinner.style.display = 'none';
-    if (grammarBox) grammarBox.style.display = 'none';
-    alert('📄 PDF를 업로드하거나 📷 이미지를 스캔해 텍스트를 먼저 추출해주세요.');
+    alert('📄 PDF를 업로드하거나 📷 이미지를 스캔하여 텍스트를 먼저 추출해주세요.');
     return;
   }
 
-  
-  const MAX_LEN = 8000;
+  // 2) 프록시/모델 한도 보호: 길이 제한
+  const MAX_LEN = 8000; // 필요 시 조정
   if (sourceText.length > MAX_LEN) {
-    console.warn('⚠️ 길이가 길어 앞부분만 보냅니다:', MAX_LEN);
+    console.warn('⚠️ 길이가 길어 앞부분만 전송합니다:', MAX_LEN);
     sourceText = sourceText.slice(0, MAX_LEN);
   }
 
   try {
-   
     const resp = await fetch(`${BASE_URL}/mistralGrammar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }, // JSON이면 프리플라이트 발생
       body: JSON.stringify({ content: sourceText }),
     });
-    if (!resp.ok) throw new Error(`mistralGrammar HTTP ${resp.status}`);
+
+    // 프록시가 만든 응답(413/502 등)은 CORS 헤더가 없어 CORS처럼 보입니다
+    if (!resp.ok) {
+      const txt = await resp.text().catch(()=>'');
+      throw new Error(`mistralGrammar HTTP ${resp.status} ${txt ? '- ' + txt : ''}`);
+    }
+
     const data = await resp.json();
-    const text = (data.result || '').toString();
-
-    
-    const lines = text
-      .split(/\n+/)
-      .map(s => s.trim())
-      .filter(Boolean); 
-
-    const removeIcons = (s) => s.replace(/^[^\w가-힣]+/, '').trim();
+    const raw  = (data.result || '').toString();
+    const lines = raw.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    const removeIcons = s => s.replace(/^[^\w가-힣]+/, '').trim();
 
     let hasError = false;
     const correctedOnly = [];
@@ -1126,7 +1128,6 @@ async function pdfScanGrammar() {
       const cleanLine2 = removeIcons(lines[i + 1] || '');
       const rule1 = lines[i + 2] || '';
       const rule2 = lines[i + 3] || '';
-
       if (!cleanLine1 && !cleanLine2) continue;
       if (cleanLine1 === cleanLine2) continue;
 
@@ -1139,48 +1140,66 @@ async function pdfScanGrammar() {
         const tdRight = document.createElement('td');
         tdRight.classList.add('right');
 
-        
-        tdLeft.innerText = '❌ ' + cleanLine1 + '\n' + '✅ ' + cleanLine2;
-       
-        tdRight.textContent = rule1 + '\n' + rule2;
+        // 원문/교정문
+        tdLeft.innerText = `❌ ${cleanLine1}\n✅ ${cleanLine2}`;
+        // 규칙/설명
+        tdRight.textContent = `${rule1}\n${rule2}`;
 
+        // 복사 버튼
+        const copyBtn = document.createElement('button');
+        copyBtn.innerText = '📋';
+        copyBtn.title = '교정문 복사';
+        copyBtn.style = 'border:none;background:transparent;cursor:pointer;font-size:16px;';
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(cleanLine2.trim());
+          copyBtn.innerText = '✅';
+          setTimeout(() => (copyBtn.innerText = '📋'), 900);
+        };
+
+        tdLeft.appendChild(copyBtn);
         row.appendChild(tdLeft);
         row.appendChild(tdRight);
         tbody.appendChild(row);
       }
     }
 
-   
+    // 표 + 교정문만 결과 영역에 출력
     if (grammarBox) grammarBox.style.display = 'block';
-
-    
     if (resultArea) {
       const out = correctedOnly.length ? correctedOnly.join('\n') : '[틀린 부분이 없거나 교정 결과가 비어 있습니다]';
       const pre = document.createElement('pre');
       pre.style.whiteSpace = 'pre-wrap';
       pre.style.margin = '0';
       pre.textContent = out;
-      resultArea.innerHTML = ''; 
+      resultArea.innerHTML = '';
       resultArea.appendChild(pre);
     }
 
     if (!hasError) alert('🎉 틀린 부분이 없습니다.');
-   
+
+    // PDF 저장 버튼 리바인딩
     const pdfBtn = document.getElementById('pdfDownloadBtn');
     if (pdfBtn) {
       const newBtn = pdfBtn.cloneNode(true);
       pdfBtn.replaceWith(newBtn);
       newBtn.style.display = 'inline-block';
-      newBtn.addEventListener('click', () => saveAsPDF(resultArea, '문법 교정.pdf'));
+      newBtn.addEventListener('click', () => saveAsPDF(grammarTable || resultArea, '문법 교정.pdf'));
     }
   } catch (e) {
     console.error('문법 교정 실패:', e);
-    if (resultArea) resultArea.textContent = '❌ 문법 교정 중 오류가 발생했습니다.';
-    if (grammarBox) grammarBox.style.display = 'none'; 
+    // CORS처럼 보이는 경우: 프록시(413/502 등)일 가능성이 큼
+    if (resultArea) {
+      resultArea.textContent =
+        String(e).includes('HTTP 413') ? '⚠️ 텍스트가 너무 길어 일부만 보내 주세요.'
+        : String(e).includes('HTTP 502') ? '⚠️ 서버가 잠시 응답하지 않았습니다. 잠시 후 다시 시도해주세요.'
+        : '❌ 문법 교정 중 오류가 발생했습니다.';
+    }
+    if (grammarBox) grammarBox.style.display = 'none';
   } finally {
     if (spinner) spinner.style.display = 'none';
   }
 }
+
 
 async function pdfScanStyle() {
     const grammarBox = document.getElementById('grammarBox');
