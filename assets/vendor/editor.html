@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>StoryCraft Editor — All-in-One</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,'Noto Sans KR',sans-serif;background:#fafbff;margin:0}
+    header{position:sticky;top:0;background:#fff;padding:10px 12px;border-bottom:1px solid #e7e7f3;z-index:10}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .toolbar select,.toolbar button,.toolbar input[type="file"]{border:1px solid #c7c7e6;border-radius:10px;padding:8px 10px;background:linear-gradient(180deg,#fff,#f6f6ff)}
+    .toolbar button{cursor:pointer;box-shadow:0 4px 10px rgba(120,120,200,.15)}
+    .toolbar button.primary{background:linear-gradient(135deg,#a3b8ff,#e1b2ff);color:#132045;font-weight:700}
+    .wrap{max-width:1000px;margin:18px auto;padding:0 16px}
+    #doc{min-height:380px;background:#f1eeff3a;border:2px solid #9aa5ff;border-radius:14px;padding:18px;line-height:1.7;outline:none;white-space:pre-wrap}
+    #status{font-size:13px;color:#586;}
+    .two-col{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
+    .panel{background:#fff;border:1px solid #e7e7f3;border-radius:14px;padding:12px}
+    .panel h3{margin:0 0 8px 0;font-size:16px}
+    table.grammar{width:100%;border-collapse:collapse}
+    table.grammar th,table.grammar td{border:1px solid #deddf5;padding:8px;vertical-align:top}
+    table.grammar th{background:#5c62d8;color:#fff}
+    td.right{white-space:pre-wrap}
+    .muted{opacity:.7}
+    .hidden{display:none}
+    .spinner{display:none;margin-left:6px}
+  </style>
+  <!-- (선택) 배포/로컬 강제 오버라이드: 필요시 주석 해제 -->
+  <!-- <script>window.BASE_URL_OVERRIDE='https://storycraft-ppxj.onrender.com';</script> -->
+</head>
+<body>
+<header>
+  <div class="toolbar wrap">
+    <span class="muted">원본:</span>
+    <select id="srcLang">
+      <option value="auto" selected>자동 감지</option>
+      <option value="ko">한국어</option><option value="en">영어</option><option value="ja">일본어</option>
+      <option value="zh">중국어</option><option value="es">스페인어</option>
+    </select>
+    <span class="muted">→ 대상:</span>
+    <select id="tgtLang">
+      <option value="ko">한국어</option><option value="en" selected>영어</option>
+      <option value="ja">일본어</option><option value="zh">중국어</option><option value="es">스페인어</option>
+    </select>
+    <button id="btnTranslate" class="primary">번역 🌐</button>
+
+    <select id="styleSelect" title="문체 변경">
+      <option value="formal">격식체</option>
+      <option value="casual">캐주얼</option>
+      <option value="academic">학술체</option>
+      <option value="press">보도자료체</option>
+    </select>
+    <button id="btnStyle">문체 변경 ✒️</button>
+    <button id="btnRewrite">첨삭 ✍️</button>
+    <button id="btnSummary">요약 🧩</button>
+    <button id="btnExpand">확장 ➕</button>
+    <button id="btnHonor">경어체 🙇</button>
+    <button id="btnInformal">평어체 🙂</button>
+    <button id="btnGrammar">문법 교정 ✅</button>
+
+    <label class="muted" style="margin-left:6px">삽입:</label>
+    <input type="file" id="imgPicker" accept="image/*" />
+    <button id="btnOCR">이미지 스캔 삽입</button>
+    <input type="file" id="pdfPicker" accept="application/pdf" />
+    <button id="btnPDFScan">PDF 스캔 삽입</button>
+
+    <button id="btnSavePdf" class="primary" style="margin-left:auto">문서 PDF 저장</button>
+    <span id="status" class="spinner">⏳ 처리 중…</span>
+  </div>
+</header>
+
+<div class="wrap two-col">
+  <div class="panel">
+    <h3>문서</h3>
+    <div id="doc" contenteditable="true" spellcheck="false" placeholder="여기에 글을 입력하거나, PDF/이미지에서 텍스트를 스캔해 삽입하세요."></div>
+  </div>
+
+  <div class="panel">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">
+      문법 교정 표
+      <button id="btnApplyCorrections" class="hidden">교정 적용</button>
+    </h3>
+    <table class="grammar" id="grammarTable">
+      <thead><tr><th>교정문</th><th>관련 규범·설명</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="muted" style="margin-top:8px">선택 문단만 교정하려면 에디터에서 문장을 선택한 뒤 “문법 교정”을 누르세요.</div>
+  </div>
+</div>
+
+<!-- html2pdf (로컬에 이미 쓰는 버전 있으면 그걸 사용) -->
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+
+<script>
+/* ========= 환경 & 유틸 ========= */
+const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const BASE_URL = (window.BASE_URL_OVERRIDE && String(window.BASE_URL_OVERRIDE)) ||
+                 (isLocalhost ? 'http://127.0.0.1:8000' : 'https://storycraft-ppxj.onrender.com');
+
+function $(sel){ return document.querySelector(sel); }
+function getSelectedText(){
+  const sel = window.getSelection();
+  return sel && sel.toString() ? sel.toString() : '';
+}
+function replaceSelection(text){
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) { $('#doc').textContent = text; return; }
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(document.createTextNode(text));
+  // 커서 끝으로 이동
+  range.collapse(false);
+  sel.removeAllRanges(); sel.addRange(range);
+}
+function getScopeText(){
+  const t = getSelectedText();
+  return t && t.trim() ? t : $('#doc').innerText;
+}
+function setBusy(on){ $('#status').style.display = on ? 'inline' : 'none'; toolbarDisable(on); }
+function toolbarDisable(dis){
+  document.querySelectorAll('button,select,input[type="file"]').forEach(el=>{ el.disabled = dis; });
+}
+async function fetchWithRetry(url,opts={},retries=2,delay=1200){
+  try{
+    const r = await fetch(url,opts);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r;
+  }catch(e){
+    if(retries<=0) throw e;
+    await new Promise(r=>setTimeout(r,delay));
+    return fetchWithRetry(url,opts,retries-1,Math.round(delay*1.6));
+  }
+}
+function cutLong(text,max=8000){ return text.length>max ? text.slice(0,max) : text; }
+
+/* ========= 공통 처리 ========= */
+async function callJSON(endpoint, payload){
+  // 콜드스타트 웜업
+  fetch(BASE_URL+'/whoami',{cache:'no-store'}).catch(()=>{});
+  return fetchWithRetry(BASE_URL+'/'+endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+}
+
+/* ========= 동작 핸들러 ========= */
+async function doTranslate(){
+  const src = $('#srcLang').value; const tgt = $('#tgtLang').value;
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('translate',{ text: content, source: src, target: tgt });
+    const data = await res.json();
+    const out = (data.result||data.text||'').toString();
+    replaceSelection(out || '[번역 결과가 비었습니다]');
+  }catch(e){ alert('번역 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doRewrite(){
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('mistralRewrite',{ content });
+    const data = await res.json();
+    const out = (data.result||'').toString();
+    replaceSelection(out || '[첨삭 결과가 비었습니다]');
+  }catch(e){ alert('첨삭 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doStyleChange(){
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  const style = $('#styleSelect').value;
+  setBusy(true);
+  try{
+    const res = await callJSON('gptStyleChange',{ text: content, style });
+    const data = await res.json();
+    replaceSelection((data.result||'').toString() || '[문체변경 결과가 비었습니다]');
+  }catch(e){ alert('문체 변경 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doSummary(){
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('summary',{ content });
+    const data = await res.json();
+    replaceSelection((data.result||'').toString() || '[요약 결과가 비었습니다]');
+  }catch(e){ alert('요약 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doExpand(){
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('expand',{ content });
+    const data = await res.json();
+    replaceSelection((data.result||'').toString() || '[확장 결과가 비었습니다]');
+  }catch(e){ alert('확장 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doHonorific(){
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('cohereHonorific',{ content });
+    const data = await res.json();
+    replaceSelection((data.result||'').toString() || '[경어 변환 결과가 비었습니다]');
+  }catch(e){ alert('경어 변환 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doInformal(){
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('cohereInformal',{ content });
+    const data = await res.json();
+    replaceSelection((data.result||'').toString() || '[평어 변환 결과가 비었습니다]');
+  }catch(e){ alert('평어 변환 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function doGrammar(){
+  const tbody = $('#grammarTable tbody');
+  tbody.innerHTML = '';
+  let content = getScopeText().trim(); if(!content) return alert('텍스트가 비어있습니다.');
+  content = cutLong(content);
+  setBusy(true);
+  try{
+    const res = await callJSON('mistralGrammar',{ content });
+    const data = await res.json();
+    const raw = (data.result||'').toString();
+
+    // 파싱하여 표 채우기
+    const lines = raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const strip = s => s.replace(/^[^\w가-힣]+/,'').trim();
+    const corrected = [];
+    for(let i=0;i<lines.length;i+=4){
+      const from = strip(lines[i]||''); const to = strip(lines[i+1]||'');
+      const rule1 = lines[i+2]||''; const rule2 = lines[i+3]||'';
+      if(!from && !to) continue;
+      if(from===to) continue;
+      corrected.push(to);
+      const tr = document.createElement('tr');
+      const tdL = document.createElement('td'); const tdR = document.createElement('td'); tdR.className='right';
+      tdL.innerText = `❌ ${from}\n✅ ${to}`;
+      tdR.textContent = `${rule1}\n${rule2}`;
+      tbody.appendChild(tr); tr.appendChild(tdL); tr.appendChild(tdR);
+    }
+
+    // 교정 적용 버튼 표시/동작
+    const btnApply = $('#btnApplyCorrections');
+    if (corrected.length){
+      btnApply.classList.remove('hidden');
+      btnApply.onclick = ()=>{
+        replaceSelection(corrected.join('\n'));
+        btnApply.classList.add('hidden');
+      };
+    } else {
+      btnApply.classList.add('hidden');
+      alert('틀린 부분이 없거나 교정 결과가 비었습니다.');
+    }
+  }catch(e){ alert('문법 교정 실패: '+e); }
+  finally{ setBusy(false); }
+}
+
+/* ========= OCR / PDF 스캔 삽입 ========= */
+async function insertFromImage(){
+  const f = $('#imgPicker').files[0];
+  if(!f) return alert('이미지 파일을 선택하세요.');
+  const fd = new FormData(); fd.append('image', f);
+  setBusy(true);
+  try{
+    const res = await fetchWithRetry(BASE_URL+'/visionOCR',{ method:'POST', body:fd });
+    const js = await res.json();
+    const txt = (js.result||js.text||'').toString().replace(/\u00A0/g,' ').trim();
+    replaceSelection(txt || '[텍스트를 추출하지 못했습니다]');
+    $('#imgPicker').value='';
+  }catch(e){ alert('이미지 스캔 실패: '+e); } finally{ setBusy(false); }
+}
+
+async function insertFromPDF(){
+  const f = $('#pdfPicker').files[0];
+  if(!f) return alert('PDF 파일을 선택하세요.');
+  const fd = new FormData(); fd.append('pdf', f);
+  setBusy(true);
+  try{
+    const res = await fetchWithRetry(BASE_URL+'/pdfScan',{ method:'POST', body:fd });
+    const js = await res.json();
+    const txt = (js.text||'').toString().replace(/\u00A0/g,' ').trim();
+    replaceSelection(txt || '[텍스트를 추출하지 못했습니다]');
+    $('#pdfPicker').value='';
+  }catch(e){ alert('PDF 스캔 실패: '+e); } finally{ setBusy(false); }
+}
+
+/* ========= PDF 저장 ========= */
+function saveDocAsPDF(){
+  const opt = { margin:10, filename:'StoryCraft-문서.pdf',
+    html2canvas:{ scale:2, useCORS:true }, jsPDF:{ unit:'mm', format:'a4', orientation:'portrait' } };
+  html2pdf().from($('#doc')).set(opt).save();
+}
+
+/* ========= 이벤트 바인딩 ========= */
+window.addEventListener('DOMContentLoaded', ()=>{
+  // 웜업(콜드스타트 완화)
+  fetch(BASE_URL+'/whoami',{cache:'no-store'}).catch(()=>{});
+  setTimeout(()=>fetch(BASE_URL+'/whoami',{cache:'no-store'}).catch(()=>{}), 2500);
+
+  $('#btnTranslate').onclick = doTranslate;
+  $('#btnRewrite').onclick   = doRewrite;
+  $('#btnStyle').onclick     = doStyleChange;
+  $('#btnSummary').onclick   = doSummary;
+  $('#btnExpand').onclick    = doExpand;
+  $('#btnHonor').onclick     = doHonorific;
+  $('#btnInformal').onclick  = doInformal;
+  $('#btnGrammar').onclick   = doGrammar;
+
+  $('#btnOCR').onclick       = insertFromImage;
+  $('#btnPDFScan').onclick   = insertFromPDF;
+
+  $('#btnSavePdf').onclick   = saveDocAsPDF;
+});
+</script>
+</body>
+</html>

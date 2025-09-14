@@ -898,66 +898,6 @@ async function applyTranslation() {
     }
 }
 
-window.getSelectedFile = function () {
-  const any = document.getElementById('fileAny');
-  if (any && any.files && any.files[0]) return any.files[0];
-
-  const img = document.getElementById('imageFile');
-  if (img && img.files && img.files[0]) return img.files[0];
-
-  const pdf = document.getElementById('pdfFile');
-  if (pdf && pdf.files && pdf.files[0]) return pdf.files[0];
-
-  return null;
-};
-
-
-window.isImageFile = function (file) {
-  if (!file) return false;
-  const mime = (file.type || '').toLowerCase();
-  const name = (file.name || '').toLowerCase();
-  return mime.startsWith('image/') || /\.(png|jpe?g|gif|bmp|webp|tiff?)$/.test(name);
-};
-
-window.extractTextFromAnyFile = async function (file) {
-  if (!file) throw new Error('파일이 없습니다.');
-  const fd = new FormData();
-  fd.append('file', file); // 서버 /fileScan은 'file' 필드로 받음
-  const res = await fetch(`${BASE_URL}/fileScan`, { method: 'POST', body: fd });
-  if (!res.ok) {
-    const raw = await res.text().catch(() => '');
-    throw new Error(`fileScan HTTP ${res.status} - ${raw || ''}`);
-  }
-  const js = await res.json();
-  return (js.text || '').toString();
-};
-
-// 업로더에서 파일 하나만 꺼내오기 (image.html/scan.html 겸용)
-function getSelectedFile() {
-  const any = document.getElementById('fileAny');
-  if (any && any.files && any.files[0]) return any.files[0];
-
-  // 예전 id 호환 (혹시 남아있다면)
-  const img = document.getElementById('imageFile');
-  if (img && img.files && img.files[0]) return img.files[0];
-
-  const pdf = document.getElementById('pdfFile');
-  if (pdf && pdf.files && pdf.files[0]) return pdf.files[0];
-
-  return null;
-}
-
-// 이미지 파일 여부 판별
-function isImageFile(file) {
-  if (!file) return false;
-  // MIME 우선, 없으면 확장자 판별
-  const mime = (file.type || '').toLowerCase();
-  const name = (file.name || '').toLowerCase();
-  return mime.startsWith('image/') || /\.(png|jpe?g|gif|bmp|webp|tiff?)$/.test(name);
-}
-
-
-
 async function handlePdfScanAndProcess({
     apiEndpoint,
     boxClass,
@@ -965,19 +905,12 @@ async function handlePdfScanAndProcess({
     extraPayload = {},
 }) {
     const resultArea = document.getElementById('resultArea') || document.getElementById('ocrResult');
-    const file = getSelectedFile();
-if (file) {
-  if (isImageFile(file)) {
-    const fd = new FormData();
-    fd.append('image', file); // /visionOCR는 'image'로 받음
-    const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
-    const js = await res.json();
-    extractedText = (js.text || js.result || '').toString();
-  } else {
-    extractedText = await extractTextFromAnyFile(file); // ← 여기서 전역 함수 사용
-  }
-  window.lastExtractedText = extractedText;
-}
+     const pdfEl   = document.getElementById('pdfFile');
+     const pdfFile = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
+     const isPdf   = pdfFile && (
+       (pdfFile.type && pdfFile.type.includes('pdf')) || /\.pdf$/i.test(pdfFile.name)
+     );
+     const file = isPdf ? pdfFile : null;
      
      const spinner = document.getElementById('loadingSpinner');
     if (!spinner || !resultArea) {
@@ -987,6 +920,7 @@ if (file) {
     spinner.style.display = 'block';
 
     const formData = new FormData();
+    if (file) formData.append('pdf', file);
 
     try {
         let extractedText = '';
@@ -994,23 +928,29 @@ if (file) {
         if (lastExtractedText && !file) {
             extractedText = lastExtractedText;
         } else if (file) {
-       if (isImageFile(file)) {
-         const fd = new FormData();
-         fd.append('image', file);
-         const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
-         if (!res.ok) {
-           const raw = await res.text().catch(()=> '');
-           throw new Error(`visionOCR HTTP ${res.status} - ${raw || ''}`);
-         }
-         const js = await res.json();
-         extractedText = (js.text || js.result || '').toString();
-       } else {
-         const text = await extractTextFromAnyFile(file); // 문서 → /fileScan
-         extractedText = text || '[텍스트를 추출하지 못했습니다]';
-       }
-       lastExtractedText = extractedText;
+            const response = await fetch(`${BASE_URL}/pdfScan`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const contentType = response.headers.get('content-type');
+            if (!response.ok) {
+                throw new Error(`PDF 업로드 실패: ${response.status}`);
+            }
+
+            if (!contentType || !contentType.includes('application/json')) {
+                const raw = await response.text();
+                console.error('❌ JSON 응답 아님:', raw);
+                throw new Error('JSON 형식이 아님: ' + raw);
+            }
+
+            const extractResult = await response.json();
+            console.log('🧾 추출된 텍스트:', extractResult.text);
+            extractedText =
+                extractResult.text || '[텍스트를 추출하지 못했습니다]';
+            lastExtractedText = extractedText;
         } else {
-            alert('문서를 업로드하거나 텍스트를 먼저 추출해주세요.');
+            alert('PDF 파일을 업로드하거나 텍스트를 먼저 추출해주세요.');
             spinner.style.display = 'none';
             return;
         }
@@ -1092,7 +1032,7 @@ if (file) {
             resultArea.appendChild(errorBox);
         }
     } catch (err) {
-        alert('📛 스캔/추출 중 오류: ' + err.message);
+        alert('📛 PDF 추출 중 오류: ' + err.message);
         console.error('❌ PDF 추출 실패:', err);
         const errorBox = document.createElement('div');
         errorBox.className = boxClass;
@@ -1113,7 +1053,9 @@ if (file) {
 // }
 
 async function pdfScanGrammar() {
-  const file = getSelectedFile();
+  const pdfEl = document.getElementById('pdfFile');
+  const pdfFile = pdfEl && pdfEl.files ? pdfEl.files[0] : null;
+
   const grammarBox   = document.getElementById('grammarBox');
   const grammarTable = document.getElementById('grammarTable');
   const tbody        = grammarTable ? grammarTable.querySelector('tbody') : null;
@@ -1129,20 +1071,16 @@ async function pdfScanGrammar() {
   // 0) 웜업(콜드스타트/프리플라이트 완화용)
   try { await fetch(`${BASE_URL}/whoami`, { cache: 'no-store' }); } catch {}
 
-  
+  // 1) 원문 확보: PDF 우선, 없으면 OCR 텍스트
   let sourceText = '';
   try {
-    if (file) {
-         if (isImageFile(file)) {
-           const fd = new FormData();
-           fd.append('image', file);
-           const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
-           if (!res.ok) throw new Error(`visionOCR HTTP ${res.status}`);
-           const js = await res.json();
-           sourceText = (js.text || js.result || '').toString().trim();
-         } else {
-           sourceText = (await extractTextFromAnyFile(file)).toString().trim();
-         }
+    if (pdfFile) {
+      const fd = new FormData();
+      fd.append('pdf', pdfFile);
+      const res = await fetch(`${BASE_URL}/pdfScan`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(`pdfScan HTTP ${res.status}`);
+      const js = await res.json();
+      sourceText = (js.text || '').toString().trim();
     } else {
       const lt = (typeof lastExtractedText !== 'undefined' && lastExtractedText) || window.lastExtractedText;
       sourceText = (lt || '').toString().trim();
@@ -1355,8 +1293,34 @@ async function pdfScanTranslate() {
     const sourceLang = document.getElementById('sourceSelector').value;
     const targetLang = document.getElementById('targetSelector').value;
 
-    if (!lastExtractedText || !lastExtractedText.trim()) {
-     }
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput ? fileInput.files[0] : null;
+
+    if (!file && (!lastExtractedText || !lastExtractedText.trim())) {
+        alert('PDF 파일을 먼저 업로드해 주세요.');
+        return;
+    }
+
+    let textToTranslate = lastExtractedText;
+
+    if (file) {
+        const formData = new FormData();
+        formData.append('pdf', file);
+
+        try {
+            const extractResponse = await fetch(`${BASE_URL}/pdfScan`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const extractResult = await extractResponse.json();
+            textToTranslate = extractResult.text;
+            lastExtractedText = textToTranslate;
+        } catch (err) {
+            alert('PDF 텍스트 추출 실패: ' + err.message);
+            return;
+        }
+    }
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'translate',
@@ -1472,60 +1436,85 @@ function saveAsPDF(content, filename = 'converted.pdf') {
 }
 
 async function performOCR() {
-  const spinner = document.getElementById('loadingSpinner');
+  const fileInput  = document.getElementById('imageFile');
+  const spinner    = document.getElementById('loadingSpinner');
   const resultArea = document.getElementById('ocrResult') || document.getElementById('resultArea');
-  const grammarBox = document.getElementById('grammarBox');
+  const downloadBtn= document.getElementById('downloadPdfBtn');
 
-  // 초기화
-  if (grammarBox) grammarBox.style.display = 'none';
-  if (resultArea) resultArea.textContent = '';
+  if (!fileInput || !fileInput.files?.[0]) {
+    alert('이미지를 업로드해주세요.');
+    return;
+  }
+
+  if (!resultArea) {
+    console.error('❗ 결과 영역(#ocrResult 또는 #resultArea)이 없습니다.');
+    alert('결과를 표시할 영역이 없습니다. 페이지 구조를 확인해주세요.');
+    return;
+  }
+
+  // 중복 클릭 방지
+  const btn = document.querySelector('.resultBtn_SC');
+  if (btn) { btn.disabled = true; }
+
+  resultArea.innerHTML = '';
   if (spinner) spinner.style.display = 'block';
+  if (downloadBtn) downloadBtn.style.display = 'none';
 
-  // 0) 웜업(콜드스타트/프리플라이트 완화)
-  try { await fetch(`${BASE_URL}/whoami`, { cache: 'no-store' }); } catch {}
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]); // 서버 파라미터 이름과 일치
 
-  const file = getSelectedFile();
+  // 타임아웃(네트워크 뻗을 때 대비)
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 30000);
 
   try {
-    let extractedText = '';
+    const res = await fetch(`${BASE_URL}/visionOCR`, {
+      method: 'POST',
+      body: formData,
+      signal: ctrl.signal,
+    });
 
-    if (file) {
-      if (isImageFile(file)) {
-        // ✅ 이미지 → /visionOCR
-        const fd = new FormData();
-        fd.append('image', file); // 이미지일 때는 'image' 필드명으로!
-        const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
-        if (!res.ok) {
-          const raw = await res.text().catch(()=> '');
-          throw new Error(`visionOCR HTTP ${res.status} - ${raw || ''}`);
-        }
-        const js = await res.json();
-        extractedText = (js.text || js.result || '').toString();
-      } else {
-        // ✅ 문서 → /fileScan
-        extractedText = await extractTextFromAnyFile(file);
-      }
-      window.lastExtractedText = extractedText; // 후속 버튼(요약/번역/문체 등)을 위해 저장
-    } else if (window.lastExtractedText) {
-      // 파일 없이도 직전 스캔 결과를 재활용(이미지든 문서든 동일)
-      extractedText = window.lastExtractedText;
-    } else {
-      alert('이미지 또는 문서를 먼저 업로드해 주세요.');
+    // 🔎 CORS/서버 에러 가시화
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${res.statusText} ${text ? '- ' + text : ''}`);
+    }
+
+    // JSON 파싱 방어
+    let data;
+    try { data = await res.json(); }
+    catch { throw new Error('서버 응답이 JSON 형식이 아닙니다.'); }
+
+    const cleanedText = data?.result || data?.text || '';
+    if (!cleanedText) {
+      resultArea.innerText = '텍스트를 추출하지 못했습니다.';
       return;
     }
 
-    // 화면 출력(페이지 구조에 맞게)
-    if (resultArea) {
-      resultArea.textContent = extractedText || '[텍스트를 추출하지 못했습니다]';
+    resultArea.innerHTML = `<div class="ocrResultBox">${cleanedText}</div>`;
+    // 전역 저장 (다음 단계: 요약/번역)
+    window.lastExtractedText = cleanedText;
+    if (typeof lastExtractedText !== 'undefined') {
+      lastExtractedText = cleanedText;
     }
+    
+    const imgEl = document.getElementById('imageFile');
+    if (imgEl) imgEl.value = '';
+
+    if (downloadBtn) downloadBtn.style.display = 'inline-block';
   } catch (err) {
-    console.error('❌ 스캔 오류:', err);
-    alert(`스캔 오류: ${err.message || err}`);
+    console.error('OCR 요청 오류:', err);
+    // CORS일 때 힌트 메시지
+    const maybeCORS = String(err).includes('TypeError: Failed to fetch') || String(err).includes('CORS');
+    resultArea.innerText = maybeCORS
+      ? '⚠️ CORS 또는 네트워크 오류로 요청이 차단되었습니다. 서버 CORS 설정을 확인해주세요.'
+      : '❌ OCR 처리 중 오류가 발생했습니다.';
   } finally {
+    clearTimeout(t);
     if (spinner) spinner.style.display = 'none';
+    if (btn) { btn.disabled = false; }
   }
 }
-
 
 async function translateOCR() {
     const sourceLang = document.getElementById('sourceSelector')?.value || 'auto';

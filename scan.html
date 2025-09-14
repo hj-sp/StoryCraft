@@ -97,16 +97,19 @@
             <section id="pricing" class="pricing section">
                 <!-- Section Title -->
                 <div class="container section-title" data-aos="fade-up">
-                    <h2>PDF Scan</h2>
+                    <h2>Scan</h2>
                     <div class="container">
                         <form id="uploadForm">
                             <input
-                                type="file"
-                                id="pdfFile"
-                                name="pdf"
-                                accept="application/pdf"
-                                class="pdfScanFileChooseBtn_SC"
-                            />
+  type="file"
+  id="fileAny"
+  name="file"
+  accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
+  class="pdfScanFileChooseBtn_SC"
+/>
+<small style="display:block;color:#888;margin-top:6px">
+  지원: PDF, 한글(HWP/HWPX), Word(DOC/DOCX), Excel(XLS/XLSX), PowerPoint(PPT/PPTX), TXT
+</small>
                             <div>
                                 <label for="styleSelect">문체 선택:</label>
                                 <select id="styleSelect">

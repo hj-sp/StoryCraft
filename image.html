@@ -59,7 +59,16 @@
             <!-- 파일 업로드 -->
             <form id="uploadForm" enctype="multipart/form-data">
               <div class="mb-3" style="text-align:center;">
-                <input type="file" id="imageFile" name="image" accept="image/*" required />
+                <input
+  type="file"
+  id="fileAny"
+  name="file"            
+  accept="image/*,.pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
+  required
+/>
+<small style="display:block;color:#888;margin-top:6px">
+  지원: 이미지(JPG/PNG 등), PDF, 한글(HWP/HWPX), Word, Excel, PowerPoint, TXT
+</small>
               </div>
 
               <div style="text-align:center; margin-bottom: 6px;">
