@@ -32,7 +32,7 @@ import subprocess
 import mimetypes
 import zipfile
 import xml.etree.ElementTree as ET
-import speech_recognition as sr  # 음성인식
+#import speech_recognition as sr  # 음성인식
 from pydub import AudioSegment
 from io import BytesIO
 import imageio_ffmpeg
@@ -725,8 +725,8 @@ async def vision_ocr(image: UploadFile = File(...)):
         print("❌ 서버 에러:", e)
         return {"result": f"서버 에러: {e}"}
 
-@app.post("/speech")
-async def upload_audio(audio: UploadFile = File(...)):
+# @app.post("/speech")
+#async def upload_audio(audio: UploadFile = File(...)):
     start_time = time.time()
 
     # 업로드된 오디오 파일 읽기
@@ -773,7 +773,7 @@ async def upload_audio(audio: UploadFile = File(...)):
     print(round(elapsed_time, 3))
     print()
 
-    return {"text": text, "time": round(elapsed_time, 3)}
+    return {"text": text, "time": round(elapsed_time, 3)} 
 
 @app.post("/editorGrammar")
 async def editorGrammar(content: TextInput):
