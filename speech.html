@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>StoryCraft</title>
+        <meta name="description" content="" />
+        <meta name="keywords" content="" />
+
+        <!-- Favicons -->
+        <link href="assets/img/favicon.png" rel="icon" />
+        <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon" />
+
+        <!-- Fonts -->
+        <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Vendor CSS Files -->
+        <link
+            href="assets/vendor/bootstrap/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="assets/vendor/bootstrap-icons/bootstrap-icons.css"
+            rel="stylesheet"
+        />
+        <link href="assets/vendor/aos/aos.css" rel="stylesheet" />
+        <link
+            href="assets/vendor/glightbox/css/glightbox.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="assets/vendor/swiper/swiper-bundle.min.css"
+            rel="stylesheet"
+        />
+
+        <!-- Main CSS File -->
+        <link href="assets/css/main.css" rel="stylesheet" />
+
+        <!-- =======================================================
+  * Template Name: Bikin
+  * Template URL: https://bootstrapmade.com/bikin-free-simple-landing-page-template/
+  * Updated: Aug 07 2024 with Bootstrap v5.3.3
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+    </head>
+
+    <body class="index-page">
+        <header id="header" class="header d-flex align-items-center sticky-top">
+            <div
+                class="container position-relative d-flex align-items-center justify-content-between"
+            >
+                <a
+                    href="index.html"
+                    class="logo d-flex align-items-center me-auto me-xl-0"
+                >
+                    <!-- Uncomment the line below if you also wish to use an image logo -->
+                    <!-- <img src="assets/img/logo.png" alt=""> -->
+                    <h1 class="sitename">StoryCraft</h1>
+                </a>
+
+                <nav id="navmenu" class="navmenu">
+                    <ul>
+                        <li>
+                            <!-- <a href="index.html#hero">Home</a>
+                        </li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#services">Services</a></li> -->
+                        </li>
+
+                        <li><a href="search.html">Search</a></li>
+                        <li><a href="rewrite.html">Rewrite</a></li>
+                        <li>
+                            <a href="change-style.html">Style</a>
+                        </li>
+                        <li>
+                            <a href="grammar.html">Grammar</a>
+                        </li>
+                        <li><a href="honorific.html">Honorific</a></li>
+                        <li><a href="translate.html">Translate</a></li>
+                        <li><a href="scan.html">Scan</a></li>
+                        <li><a href="image.html">Image Scan</a></li>
+                        <li><a href="speech.html" class="active">Speech</a></li>
+                        <li><a href="editor.html">Editor</a></li>
+                    </ul>
+                    <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Pricing Section -->
+            <section id="pricing" class="pricing section">
+                <!-- Section Title -->
+                <div class="container section-title" data-aos="fade-up">
+                    <h2>Speech Recognition</h2>
+                    <div class="container">
+                        <form id="uploadForm">
+                            <input
+                                type="file"
+                                id="audioFile"
+                                name="audio"
+                                accept="audio/*"
+                                class="pdfScanFileChooseBtn_SC"
+                            />
+                            <button id="startRecord" type="button">
+                                녹음 시작
+                            </button>
+                            <button id="stopRecord" type="button" disabled>
+                                녹음 종료
+                            </button>
+                            <div>
+                                <label for="styleSelect">문체 선택:</label>
+                                <select id="styleSelect">
+                                    <option value="casual">구어체</option>
+                                    <option value="formal">격식체</option>
+                                    <option value="literary">문학체</option>
+                                    <option value="academic">학술체</option>
+                                </select>
+                                <button
+                                    id="speechStyleBtn"
+                                    type="button"
+                                    name="action"
+                                    value="style"
+                                    class="resultBtn_SC"
+                                >
+                                    문체 변경
+                                </button>
+                                <!-- <button
+                                    id="speechRewriteBtn"
+                                    type="button"
+                                    name="action"
+                                    value="rewrite"
+                                    class="resultBtn_SC"
+                                >
+                                    첨삭
+                                </button> -->
+                                <button
+                                    id="speechSummaryBtn"
+                                    type="button"
+                                    name="action"
+                                    value="summary"
+                                    class="resultBtn_SC"
+                                >
+                                    요약
+                                </button>
+                                <button
+                                    id="speechExpandBtn"
+                                    type="button"
+                                    name="action"
+                                    value="expand"
+                                    class="resultBtn_SC"
+                                >
+                                    확장
+                                </button>
+                                <button
+                                    id="speechHonorificBtn"
+                                    type="button"
+                                    name="action"
+                                    value="honorific"
+                                    class="resultBtn_SC"
+                                >
+                                    경어체
+                                </button>
+                                <button
+                                    id="speechInformalBtn"
+                                    type="button"
+                                    name="action"
+                                    value="informal"
+                                    class="resultBtn_SC"
+                                >
+                                    평어체
+                                </button>
+
+                                <hr />
+                                <div style="margin-top: 10px">
+                                    <label for="sourceSelector"
+                                        >원본 언어:</label
+                                    >
+                                    <select id="sourceSelector">
+                                        <option value="auto" selected>
+                                            자동 감지
+                                        </option>
+                                        <option value="gu">구자라트어</option>
+                                        <option value="el">그리스어</option>
+                                        <option value="ne">네팔어</option>
+                                        <option value="nl">네덜란드어</option>
+                                        <option value="de">독일어</option>
+                                        <option value="ru">러시아어</option>
+                                        <option value="ro">루마니아어</option>
+                                        <option value="mr">마라티어</option>
+                                        <option value="ms">말레이어</option>
+                                        <option value="vi">베트남어</option>
+                                        <option value="bn">벵골어</option>
+                                        <option value="sv">스웨덴어</option>
+                                        <option value="es">스페인어</option>
+                                        <option value="af">아프리칸스어</option>
+                                        <option value="ar">아랍어</option>
+                                        <option value="en">영어</option>
+                                        <option value="uk">우크라이나어</option>
+                                        <option value="it">이탈리아어</option>
+                                        <option value="ja">일본어</option>
+                                        <option value="jv">자바어</option>
+                                        <option value="ka">조지아어</option>
+                                        <option value="zh-CN">
+                                            중국어(간체)
+                                        </option>
+                                        <option value="zh-TW">
+                                            중국어(번체)
+                                        </option>
+                                        <option value="ta">타밀어</option>
+                                        <option value="th">태국어</option>
+                                        <option value="tr">터키어</option>
+                                        <option value="fa">페르시아어</option>
+                                        <option value="pt">포르투갈어</option>
+                                        <option value="pl">폴란드어</option>
+                                        <option value="fr">프랑스어</option>
+                                        <option value="ko">한국어</option>
+                                        <option value="hi">힌디어</option>
+                                    </select>
+
+                                    <label for="targetSelector"
+                                        >대상 언어:</label
+                                    >
+                                    <select id="targetSelector">
+                                        <option value="gu">구자라트어</option>
+                                        <option value="el">그리스어</option>
+                                        <option value="ne">네팔어</option>
+                                        <option value="nl">네덜란드어</option>
+                                        <option value="de">독일어</option>
+                                        <option value="ru">러시아어</option>
+                                        <option value="ro">루마니아어</option>
+                                        <option value="mr">마라티어</option>
+                                        <option value="ms">말레이어</option>
+                                        <option value="vi">베트남어</option>
+                                        <option value="bn">벵골어</option>
+                                        <option value="sv">스웨덴어</option>
+                                        <option value="es">스페인어</option>
+                                        <option value="af">아프리칸스어</option>
+                                        <option value="ar">아랍어</option>
+                                        <option value="en">영어</option>
+                                        <option value="uk">우크라이나어</option>
+                                        <option value="it">이탈리아어</option>
+                                        <option value="ja">일본어</option>
+                                        <option value="jv">자바어</option>
+                                        <option value="ka">조지아어</option>
+                                        <option value="zh-CN">
+                                            중국어(간체)
+                                        </option>
+                                        <option value="zh-TW">
+                                            중국어(번체)
+                                        </option>
+                                        <option value="ta">타밀어</option>
+                                        <option value="th">태국어</option>
+                                        <option value="tr">터키어</option>
+                                        <option value="fa">페르시아어</option>
+                                        <option value="pt">포르투갈어</option>
+                                        <option value="pl">폴란드어</option>
+                                        <option value="fr">프랑스어</option>
+                                        <option value="ko">한국어</option>
+                                        <option value="hi">힌디어</option>
+                                    </select>
+
+                                    <button
+                                        id="speechTranslateBtn"
+                                        type="button"
+                                        name="action"
+                                        value="translate"
+                                        class="resultBtn_SC"
+                                    >
+                                        번역하기 🌍
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        <div
+                            id="loadingSpinner"
+                            style="
+                                display: none;
+                                text-align: center;
+                                margin: 10px 0;
+                            "
+                        >
+                            <div class="spinner"></div>
+                            <p style="margin-top: 5px; color: gray">
+                                ⏳ 처리 중입니다...
+                            </p>
+                        </div>
+
+                        <div
+                            class="resultBox grammarBox"
+                            id="grammarBox"
+                            style="display: none"
+                        >
+                            <table id="grammarTable" class="grammar-table">
+                                <thead>
+                                    <tr>
+                                        <th>교정문</th>
+                                        <th>관련 규범&설명</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <div
+                            id="resultArea"
+                            class="resultArea_SC"
+                            style="text-align: left"
+                        ></div>
+                        <button
+                            id="pdfDownloadBtn"
+                            class="resultBtn_SC resultAreaPdfDownloadBtn_SC"
+                        >
+                            결과를 PDF로 다운로드
+                        </button>
+                    </div>
+                </div>
+                <!-- End Section Title -->
+                <!-- /Pricing Section -->
+            </section>
+        </main>
+
+        <footer id="footer" class="footer">
+            <div class="container footer-top">
+                <div class="row gy-4">
+                    <div class="col-lg-4 col-md-6 footer-about">
+                        <a
+                            href="index.html"
+                            class="logo d-flex align-items-center"
+                        >
+                            <span class="sitename">StoryCraft</span>
+                        </a>
+                        <div class="footer-contact pt-3">
+                            <p>상명대학교 천안캠퍼스</p>
+                            <p>충청남도 천안시 동남구 상명대길 31</p>
+                            <p class="mt-3">
+                                <strong>Phone:</strong>
+                                <span>010-1234-1234</span>
+                            </p>
+                            <p>
+                                <strong>Email:</strong>
+                                <span>202200000@sangmyung.kr</span>
+                            </p>
+                        </div>
+                        <div class="social-links d-flex mt-4">
+                            <a href=""><i class="bi bi-twitter-x"></i></a>
+                            <a href=""><i class="bi bi-facebook"></i></a>
+                            <a href=""><i class="bi bi-instagram"></i></a>
+                            <a href=""><i class="bi bi-linkedin"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2 col-md-3 footer-links">
+                        <h4>Useful Links</h4>
+                        <ul>
+                            <li>
+                                <a
+                                    href="https://ko.dict.naver.com/#/main"
+                                    target="_blank"
+                                    >국어사전</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://papago.naver.com/"
+                                    target="_blank"
+                                    >파파고</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://app.ludwig.guru/"
+                                    target="_blank"
+                                    >Ludwig(영어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://www.writecream.com/japanese-grammar-checker/"
+                                    target="_blank"
+                                    >WhiteCream(일본어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://ahelp.com/grammar-check/chinese/"
+                                    target="_blank"
+                                    >AHelp(중국어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://quillbot.com/spanish-grammar-check"
+                                    target="_blank"
+                                    >QuillBot(스페인어)</a
+                                >
+                            </li>
+                            <li>
+                                <a
+                                    href="https://languagetool.org/"
+                                    target="_blank"
+                                    >LanguageTool(다언어 지원)</a
+                                >
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="col-lg-2 col-md-3 footer-links">
+                        <h4>Our Services</h4>
+                        <ul>
+                            <li><a href="search.html">Search</a></li>
+                            <li><a href="rewrite.html">Rewrite</a></li>
+                            <li>
+                                <a href="change-style.html">Style</a>
+                            </li>
+                            <li><a href="grammar.html">Grammar</a></li>
+                            <li><a href="honorific.html">Honorific</a></li>
+                            <li><a href="translate.html">Translate</a></li>
+                            <li><a href="scan.html">Scan</a></li>
+                            <li><a href="image.html">Image Scan</a></li>
+                            <li><a href="speech.html">Speech</a></li>
+                            <li><a href="editor.html">Editor</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container copyright text-center mt-4">
+                <p>
+                    © <span>Copyright</span>
+                    <strong class="px-1 sitename">Bikin</strong>
+                    <span>All Rights Reserved</span>
+                </p>
+                <div class="credits">
+                    <!-- All the links in the footer should remain intact. -->
+                    <!-- You can delete the links only if you've purchased the pro version. -->
+                    <!-- Licensing information: https://bootstrapmade.com/license/ -->
+                    <!-- Purchase the pro version with working PHP/AJAX contact form: [buy-url] -->
+                    Designed by
+                    <a href="https://bootstrapmade.com/">BootstrapMade</a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Scroll Top -->
+        <a
+            href="#"
+            id="scroll-top"
+            class="scroll-top d-flex align-items-center justify-content-center"
+            ><i class="bi bi-arrow-up-short"></i
+        ></a>
+
+        <!-- Preloader -->
+        <div id="preloader"></div>
+
+        <!-- Vendor JS Files -->
+        <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/vendor/php-email-form/validate.js"></script>
+        <script src="assets/vendor/aos/aos.js"></script>
+        <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+        <script src="assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+        <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+        <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+        <!-- Main JS File -->
+        <script src="assets/js/main.js"></script>
+        <script src="assets/js/script.js" defer></script>
+        <script src="https://unpkg.com/diff-match-patch"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+    </body>
+</html>

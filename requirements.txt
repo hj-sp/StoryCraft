@@ -20,3 +20,12 @@ google-auth-httplib2
 google-api-core
 google-cloud-core
 google-cloud-vision>=3.4.0
+python-pptx
+openpyxl
+mammoth
+SpeechRecognition
+pydub
+pyaudio
+imageio-ffmpeg
+google-cloud-speech
+git+https://github.com/Crystal-0109/hanspell.git#egg=hanspell

@@ -7,6 +7,8 @@
         <meta name="description" content="" />
         <meta name="keywords" content="" />
 
+        <style></style>
+
         <!-- Favicons -->
         <link href="assets/img/favicon.png" rel="icon" />
         <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon" />
@@ -85,7 +87,8 @@
                         <li><a href="translate.html">Translate</a></li>
                         <li><a href="scan.html" class="active">Scan</a></li>
                         <li><a href="image.html">Image Scan</a></li>
-                        <!-- <li><a href="index.html#faq">FAQ</a></li> -->
+                        <li><a href="speech.html">Speech</a></li>
+                        <li><a href="editor.html">Editor</a></li>
                     </ul>
                     <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
                 </nav>
@@ -101,15 +104,22 @@
                     <div class="container">
                         <form id="uploadForm">
                             <input
-  type="file"
-  id="fileAny"
-  name="file"
-  accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
-  class="pdfScanFileChooseBtn_SC"
-/>
-<small style="display:block;color:#888;margin-top:6px">
-  지원: PDF, 한글(HWP/HWPX), Word(DOC/DOCX), Excel(XLS/XLSX), PowerPoint(PPT/PPTX), TXT
-</small>
+                                type="file"
+                                id="fileAny"
+                                name="file"
+                                accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
+                                class="pdfScanFileChooseBtn_SC"
+                            />
+                            <small
+                                style="
+                                    display: block;
+                                    color: #888;
+                                    margin-top: 6px;
+                                "
+                            >
+                                지원: PDF, 한글(HWP/HWPX), Word(DOC/DOCX),
+                                Excel(XLS/XLSX), PowerPoint(PPT/PPTX), TXT
+                            </small>
                             <div>
                                 <label for="styleSelect">문체 선택:</label>
                                 <select id="styleSelect">
@@ -426,6 +436,9 @@
                             <li><a href="honorific.html">Honorific</a></li>
                             <li><a href="translate.html">Translate</a></li>
                             <li><a href="scan.html">Scan</a></li>
+                            <li><a href="image.html">Image Scan</a></li>
+                            <li><a href="speech.html">Speech</a></li>
+                            <li><a href="editor.html">Editor</a></li>
                         </ul>
                     </div>
                 </div>

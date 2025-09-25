@@ -3,7 +3,6 @@ import io
 import os
 import re
 import json
-import httpx
 import html
 from openai import OpenAI
 import requests
@@ -33,6 +32,11 @@ import subprocess
 import mimetypes
 import zipfile
 import xml.etree.ElementTree as ET
+import speech_recognition as sr  # 음성인식
+from pydub import AudioSegment
+from io import BytesIO
+import imageio_ffmpeg
+from hanspell import spell_checker
 
 load_dotenv()
 
@@ -41,34 +45,33 @@ app = FastAPI()
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 os.environ.pop("VISION_KEY_PATH", None)
 
-
 ALLOW_ORIGINS = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
     "http://127.0.0.1:3000",
     "http://localhost:3000",
     "https://hj-sp.github.io",
+    "https://crystal-0109.github.io",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOW_ORIGINS,  
+    allow_origins=ALLOW_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],          
-    allow_headers=["*"],         
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"],
     max_age=600,
 )
 
 @app.get("/whoami")
 def whoami():
-   
     return {
         "ok": True,
         "has_json_vision": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")),
         "has_json_translate": bool(os.environ.get("GOOGLE_CREDENTIALS_JSON")),
         "has_path_var": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")),
-        "routes": [r.path for r in app.routes], 
+        "routes": [r.path for r in app.routes],
     }
 
 @app.get("/cors-test")
@@ -78,8 +81,10 @@ def cors_test():
 
 # ---- Vision (GOOGLE_APPLICATION_CREDENTIALS_JSON) ----
 try:
-    _vision_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
-    _vision_creds = service_account.Credentials.from_service_account_info(_vision_info)
+    _vision_info = json.loads(
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+    _vision_creds = service_account.Credentials.from_service_account_info(
+        _vision_info)
     vision_client = vision.ImageAnnotatorClient(credentials=_vision_creds)
 except Exception as e:
     # 초기화 실패 시 디버그 로그
@@ -89,7 +94,8 @@ except Exception as e:
 # ---- Translate (GOOGLE_CREDENTIALS_JSON) ----
 try:
     _trans_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
-    _trans_creds = service_account.Credentials.from_service_account_info(_trans_info)
+    _trans_creds = service_account.Credentials.from_service_account_info(
+        _trans_info)
     translate_client = google_translate.Client(credentials=_trans_creds)
 except Exception as e:
     print("[Translate Init Error]", e)
@@ -106,6 +112,8 @@ class StyleChangeRequest(BaseModel):
     style: str
 
 
+AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()  # 패키지 내부 ffmpeg 사용
+
 MISTRAL_API_KEY_H = os.getenv("MISTRAL_API_KEY_H")
 MISTRAL_API_KEY_S = os.getenv("MISTRAL_API_KEY_S")
 AGENT_ID_SUMMARY = os.getenv("MISTRAL_AGENT_ID_SUMMARY")
@@ -117,7 +125,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 PAPAGO_CLIENT_ID = os.getenv("PAPAGO_CLIENT_ID")
 PAPAGO_CLIENT_SECRET = os.getenv("PAPAGO_CLIENT_SECRET")
-
 
 @app.post("/searchExample")
 async def search_example(data: TextInput):
@@ -203,7 +210,6 @@ async def mistral_rewrite(content: TextInput):
 
 출력 형식은 다음과 같아:
 
-예시문:
 (여기에 리라이팅된 문장)
 
 아무 설명 없이 예시문 하나만 보여줘.
@@ -454,7 +460,6 @@ async def cohere_honorific(content: TextInput):
 
     return {"result": full_text}
 
-
 @app.post("/translate")
 async def translate_text(request: Request):
     body = await request.json()
@@ -480,7 +485,7 @@ async def translate_text(request: Request):
         return {"result": translated_clean}
     except Exception as e:
         return {"error": f"Google 번역 API 호출 오류: {str(e)}"}
-    
+
 def extract_pdf_text(pdf_path: str) -> str:
     """
     PyPDF2로 PDF의 전체 텍스트를 추출하고, 온점 앞 공백 제거 등 간단 후처리.
@@ -503,18 +508,21 @@ def libreoffice_to_pdf(input_path: str) -> str:
     예: soffice --headless --convert-to pdf --outdir /tmp input.hwp
     """
     outdir = tempfile.gettempdir()
-    
-    cmd = ["soffice", "--headless", "--convert-to", "pdf", "--outdir", outdir, input_path]
+
+    cmd = ["soffice", "--headless", "--convert-to",
+           "pdf", "--outdir", outdir, input_path]
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
         stem = pathlib.Path(input_path).stem
         out_pdf = os.path.join(outdir, f"{stem}.pdf")
         if not os.path.exists(out_pdf):
             raise RuntimeError("LibreOffice 변환 결과 PDF를 찾을 수 없습니다.")
         return out_pdf
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"LibreOffice 변환 실패: {e.stderr.decode('utf-8', errors='ignore')}")
-    
+        raise RuntimeError(
+            f"LibreOffice 변환 실패: {e.stderr.decode('utf-8', errors='ignore')}")
+
 def extract_hwpx_text(local_path: str) -> str:
     """
     HWPX는 OOXML 유사 구조의 '압축(zip)+XML' 포맷.
@@ -522,12 +530,13 @@ def extract_hwpx_text(local_path: str) -> str:
     """
     texts = []
     with zipfile.ZipFile(local_path, "r") as zf:
-        
+
         xml_names = [n for n in zf.namelist()
                      if n.lower().startswith("contents/") and n.lower().endswith(".xml")]
         if not xml_names:
-           
-            xml_names = [n for n in zf.namelist() if n.lower().endswith(".xml")]
+
+            xml_names = [n for n in zf.namelist(
+            ) if n.lower().endswith(".xml")]
 
         for name in sorted(xml_names):
             with zf.open(name) as fp:
@@ -537,18 +546,16 @@ def extract_hwpx_text(local_path: str) -> str:
             except ET.ParseError:
                 continue
 
-            
             for node in root.findall(".//{*}t"):
                 if node.text and node.text.strip():
                     texts.append(node.text)
 
-  
     text = "\n".join(texts)
-    text = re.sub(r"[ \t]+\n", "\n", text)         # 
-    text = re.sub(r"\s{2,}", " ", text)            # 
-    text = re.sub(r"\s+(?=[\.\,\!\?\:\;])", "", text)  
+    text = re.sub(r"[ \t]+\n", "\n", text)         #
+    text = re.sub(r"\s{2,}", " ", text)            #
+    text = re.sub(r"\s+(?=[\.\,\!\?\:\;])", "", text)
     return text.strip()
-    
+
 def extract_text_by_ext(local_path: str, filename: str) -> str:
     """
     파일 확장자/포맷에 따라 텍스트를 추출.
@@ -592,7 +599,8 @@ def extract_text_by_ext(local_path: str, filename: str) -> str:
         # openpyxl: 셀 텍스트를 시트별로 모으기
         try:
             import openpyxl
-            wb = openpyxl.load_workbook(local_path, data_only=True, read_only=True)
+            wb = openpyxl.load_workbook(
+                local_path, data_only=True, read_only=True)
             rows = []
             for ws in wb.worksheets:
                 rows.append(f"### 시트: {ws.title}")
@@ -612,7 +620,7 @@ def extract_text_by_ext(local_path: str, filename: str) -> str:
             text = raw.decode("utf-8", errors="ignore").strip()
         except Exception as e:
             raise RuntimeError(f"TXT 처리 오류: {e}")
-        
+
     elif ext == "hwpx":
         # ✅ LibreOffice 없이 바로 파싱
         text = extract_hwpx_text(local_path)
@@ -623,7 +631,7 @@ def extract_text_by_ext(local_path: str, filename: str) -> str:
         text = extract_pdf_text(pdf_path)
 
     else:
-       
+
         try:
             pdf_path = libreoffice_to_pdf(local_path)
             text = extract_pdf_text(pdf_path)
@@ -648,7 +656,6 @@ async def file_scan(file: UploadFile = File(...)):
     try:
         text = extract_text_by_ext(tmp_path, file.filename)
 
-   
         MAX_CHARS = 100_000
         if len(text) > MAX_CHARS:
             text = text[:MAX_CHARS]
@@ -661,7 +668,7 @@ async def file_scan(file: UploadFile = File(...)):
             os.remove(tmp_path)
         except:
             pass
-        
+
 
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):
@@ -669,6 +676,7 @@ async def upload_pdf(pdf: UploadFile = File(...)):
         contents = await pdf.read()
         temp_pdf.write(contents)
         temp_pdf_path = temp_pdf.name
+
     try:
         cleaned_text = extract_pdf_text(temp_pdf_path)
         return {"filename": pdf.filename, "text": cleaned_text}
@@ -696,7 +704,6 @@ def clean_ocr_text(text: str) -> str:
         cleaned_lines.append(line)
     return '\n'.join(cleaned_lines)
 
-
 @app.post("/visionOCR")
 async def vision_ocr(image: UploadFile = File(...)):
     try:
@@ -717,3 +724,77 @@ async def vision_ocr(image: UploadFile = File(...)):
     except Exception as e:
         print("❌ 서버 에러:", e)
         return {"result": f"서버 에러: {e}"}
+
+@app.post("/speech")
+async def upload_audio(audio: UploadFile = File(...)):
+    start_time = time.time()
+
+    # 업로드된 오디오 파일 읽기
+    audio_bytes = await audio.read()
+    audio_segment = AudioSegment.from_file(BytesIO(audio_bytes), format="wav")
+
+    # (선택) 오디오 전처리
+    silence = AudioSegment.silent(duration=1000)
+    audio_segment = silence + audio_segment
+    audio_segment = audio_segment.set_frame_rate(
+        16000).set_channels(1).set_sample_width(2)
+    audio_segment = audio_segment.normalize()
+    audio_segment += 6
+
+    print("현재 평균 데시벨:", audio_segment.dBFS)
+
+    # 전체 오디오 그대로 사용
+    recognizer = sr.Recognizer()
+    with BytesIO() as wav_buffer:
+        audio_segment.export(wav_buffer, format="wav")
+        wav_buffer.seek(0)
+        with sr.AudioFile(wav_buffer) as source:
+            # (선택) 잡음 보정
+            recognizer.adjust_for_ambient_noise(source, duration=1)
+            audio_data = recognizer.record(source)  # 전체 파일 한 번에 읽음
+
+            try:
+                result = recognizer.recognize_google(
+                    audio_data, language="ko-KR", show_all=True)
+                if "alternative" in result:
+                    text = result["alternative"][0]["transcript"]
+                else:
+                    text = ""
+            except sr.UnknownValueError:
+                text = ""
+                print("오디오 인식 실패")
+            except sr.RequestError as e:
+                text = ""
+                print("Google Web Speech API 요청 오류:", e)
+
+    elapsed_time = time.time() - start_time
+
+    print("\n" + text + "\n")
+    print(round(elapsed_time, 3))
+    print()
+
+    return {"text": text, "time": round(elapsed_time, 3)}
+
+@app.post("/editorGrammar")
+async def editorGrammar(content: TextInput):
+    
+    print(content.content)
+    print()
+
+    result = spell_checker.check(content.content)
+
+    print(f"원문        : {result.original}")
+    print(f"수정된 문장 : {result.checked}")
+    print(f"오류 수     : {result.errors}")
+    print(f"단어별 상태 : {list(result.words.keys())}")
+    print(f"검사 시간   : {result.time:.4f}초")
+    print("-" * 40)
+
+    return {
+        "original": result.original,
+        "checked": result.checked,
+        "errors": result.errors,
+        # "words": list(result.words.keys()),
+        "time": result.time,
+    }
+    
