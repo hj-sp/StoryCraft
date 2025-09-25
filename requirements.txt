@@ -11,7 +11,7 @@ pydantic
 python-multipart
 PyPDF2
 google-cloud-translate
-PyYAML==6.0
+PyYAML==6.0.2
 diff-match-patch
 torch
 transformers
