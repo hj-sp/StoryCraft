@@ -1,4 +1,5 @@
 --only-binary=:all:
+--no-binary=PyAudio
 fastapi
 uvicorn
 requests
@@ -26,7 +27,7 @@ openpyxl
 mammoth
 SpeechRecognition
 pydub
-pyaudio
+PyAudio==0.2.14
 imageio-ffmpeg
 google-cloud-speech
 git+https://github.com/Crystal-0109/hanspell.git#egg=hanspell
