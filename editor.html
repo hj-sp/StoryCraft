@@ -403,6 +403,8 @@
                 theme: 'snow',
                 placeholder: '여기에 문서를 작성하세요…',
             });
+             window.quill = quill;
+            
 const toolbarMod = quill.getModule('toolbar');
 
 let __sizeRange = null;
@@ -1023,9 +1025,10 @@ if (e.target.closest('#imgMenu-ocr')) {
     <div class="ocr-modal__body">
       <textarea id="ocrText" class="ocr-modal__textarea" placeholder="여기에 추출된 텍스트가 표시됩니다…"></textarea>
     </div>
-    <div class="ocr-modal__footer">
-      <button type="button" id="ocrInsert" class="btn-primary">삽입</button>
-    </div>
+    <div class="modal-actions">
+  <button id="insertBtn" type="button" class="insert-btn">삽입</button>
+</div>
+
   </div>
 </div>
 
