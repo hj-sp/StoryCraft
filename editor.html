@@ -353,9 +353,17 @@
 
         <script>
            
-            const BASE_URL = 'http://127.0.0.1:8000'; 
+            const PROD_API = 'https://storycraft-ppxj.onrender.com'; 
+            const LOCAL_API = 'http://127.0.0.1:8000'; 
+
+            const isLocalHost =
+            location.hostname === 'localhost' ||
+            location.hostname.startsWith('127.') ||
+            location.hostname.endsWith('.local');
+
+            const BASE_URL = isLocalHost ? LOCAL_API : PROD_API;
             window.BASE_URL = BASE_URL;
-            window.API_BASE_URL = BASE_URL; 
+            window.API_BASE_URL = BASE_URL;
             const $editSpinner = document.getElementById('edit_spinner');
 
             const Font = Quill.import('formats/font');
@@ -905,6 +913,10 @@ function closeModal(){
 
   // ✅ 단일 위임 핸들러: 닫기 / 삽입 / 이미지 추출
   document.addEventListener('click', async (e)=>{
+    if (e.target.closest('#ocrInsert')) {
+      e.preventDefault(); // ← 페이지 이동/폼 submit 방지
+      if (!window.quill) return;
+
     const { txtArea, fileIn } = _ocrRefs();
 
     // ① 닫기(X)
@@ -921,7 +933,7 @@ function closeModal(){
       __insertRange = null;
       closeModal();
       return;
-    }
+    }}
 
 // ③ 이미지 추출
 if (e.target.closest('#imgMenu-ocr')) {
