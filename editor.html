@@ -671,7 +671,7 @@ quill.on('selection-change', (range)=>{ window.__lastQuillRange = range; });
 
             async function doOCRorFile() {
                 
-                const file = document.getElementById('file-input').files[0];
+                const file = document.getElementById('ocrFile').files[0];
                 if (!file) {
                     alert('파일을 선택하세요.');
                     return;
@@ -913,30 +913,30 @@ function closeModal(){
 
   // ✅ 단일 위임 핸들러: 닫기 / 삽입 / 이미지 추출
   document.addEventListener('click', async (e)=>{
-    if (e.target.closest('#ocrInsert')) {
-      e.preventDefault(); // ← 페이지 이동/폼 submit 방지
-      if (!window.quill) return;
 
-    const { txtArea, fileIn } = _ocrRefs();
+    if (e.target.closest('#ocrClose')) {
+    e.preventDefault();
+    closeModal();
+    return;
+  }
 
-    // ① 닫기(X)
-    if (e.target.closest('#ocrClose')) { closeModal(); return; }
-
-    // ② 삽입 (커서/선택 위치에 그대로)
-    if (e.target.closest('#ocrInsert')) {
-      if (!window.quill || !txtArea) { closeModal(); return; }
-      const q = window.quill;
-      const text  = (txtArea.value || '').toString();
-      const range = __insertRange || q.getSelection(true) || { index: q.getLength()-1, length: 0 };
-      q.insertText(range.index, text, 'user');
-      q.setSelection(range.index + text.length, 0, 'silent');
-      __insertRange = null;
-      closeModal();
-      return;
-    }}
+      if (e.target.closest('#ocrInsert')) {
+    e.preventDefault();
+    if (!window.quill) return;
+    const { txtArea } = _ocrRefs();
+    const q = window.quill;
+    const text  = (txtArea?.value || '').toString();
+    const range = __insertRange || q.getSelection(true) || { index: q.getLength(), length: 0 };
+    q.insertText(range.index, text, 'user');
+    q.setSelection(range.index + text.length, 0, 'silent');
+    __insertRange = null;
+    closeModal();
+    return;
+  }
 
 // ③ 이미지 추출
 if (e.target.closest('#imgMenu-ocr')) {
+  const { fileIn, txtArea } = _ocrRefs();
   const file = fileIn?.files?.[0];
   if (!file){ openModal('먼저 파일을 선택해 주세요.'); return; }
 
@@ -1038,7 +1038,7 @@ if (e.target.closest('#imgMenu-ocr')) {
       <textarea id="ocrText" class="ocr-modal__textarea" placeholder="여기에 추출된 텍스트가 표시됩니다…"></textarea>
     </div>
     <div class="modal-actions">
-  <button id="insertBtn" type="button" class="insert-btn">삽입</button>
+  <button id="ocrInsert" type="button" class="insert-btn">삽입</button>
 </div>
 
   </div>
