@@ -1,33 +1,19 @@
 from dotenv import load_dotenv
-<<<<<<< HEAD
-import io
-=======
->>>>>>> 941529f (Initial commit)
 import os
 import re
 import json
 import html
 from openai import OpenAI
 import requests
-<<<<<<< HEAD
-from fastapi import Request, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-=======
 from fastapi import Request, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
->>>>>>> 941529f (Initial commit)
 import cohere
 from fastapi import Body
 from fastapi import Request
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 from google.cloud import vision
-<<<<<<< HEAD
-import base64
-=======
->>>>>>> 941529f (Initial commit)
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from PyPDF2 import PdfReader
@@ -36,30 +22,16 @@ from google.oauth2 import service_account
 from google.cloud import translate_v2 as google_translate
 from google.cloud import vision
 import html
-<<<<<<< HEAD
-import torch
-from transformers import T5ForConditionalGeneration, T5Tokenizer
-import time
-import pathlib
-import subprocess
-import mimetypes
-import zipfile
-import xml.etree.ElementTree as ET
-#import speech_recognition as sr  # 음성인식
-=======
 import time
 import pathlib
 import subprocess
 import zipfile
 import xml.etree.ElementTree as ET
 import speech_recognition as sr  # 음성인식
->>>>>>> 941529f (Initial commit)
 from pydub import AudioSegment
 from io import BytesIO
 import imageio_ffmpeg
 from hanspell import spell_checker
-<<<<<<< HEAD
-=======
 from typing import Optional
 
 def _expand_clamp(v, lo, hi):
@@ -176,7 +148,6 @@ def _crop_to_last_boundary(s: str) -> str:
     m = list(re.finditer(r'(다\.|요\.|니다\.)|[.!?…]|[”’"\')\]】〉》」』]', s))
     return s if not m else s[:m[-1].end()]
 
->>>>>>> 941529f (Initial commit)
 
 load_dotenv()
 
@@ -194,10 +165,7 @@ ALLOW_ORIGINS = [
     "http://localhost:8000",
     "https://hj-sp.github.io",
     "https://crystal-0109.github.io",
-<<<<<<< HEAD
-=======
     "https://storycraft-cnjn.onrender.com",
->>>>>>> 941529f (Initial commit)
 ]
 
 app.add_middleware(
@@ -336,8 +304,6 @@ async def gpt_style_change(request: Request):
             temperature=0.7
         )
         output = completion.choices[0].message.content
-<<<<<<< HEAD
-=======
         print(output)
 
         # 글 앞 뒤 따옴표 제거
@@ -345,7 +311,6 @@ async def gpt_style_change(request: Request):
             output) >= 2 and output[0] == output[-1] and output[0] in ('"', "'") else output
         print(output)
 
->>>>>>> 941529f (Initial commit)
         return {"styled_text": output}
     except Exception as e:
         return {"error": f"GPT 호출 오류: {str(e)}"}
@@ -389,10 +354,6 @@ async def mistral_rewrite(content: TextInput):
         return {"error": f"HTTP 오류: {response.status_code}", "detail": response.text}
 
     result = response.json()
-<<<<<<< HEAD
-    # print("Mistral 응답:", result)
-=======
->>>>>>> 941529f (Initial commit)
 
     try:
         message = result["choices"][0]["message"]["content"]
@@ -423,18 +384,6 @@ async def summarize(content: TextInput):
     return {"result": message}
 
 @app.post("/expand")
-<<<<<<< HEAD
-async def expand(content: TextInput):
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "당신은 글을 확장하는 전문가입니다."},
-            {"role": "user", "content": f"다음 글을 더 자세히 확장해줘:\n\n{content.content}"}
-        ]
-    )
-    message = response.choices[0].message.content
-    return {"result": message}
-=======
 async def expand(payload: ExpandInput):
     try:
         text = (payload.content or "").strip()
@@ -626,7 +575,6 @@ async def expand(payload: ExpandInput):
             content={"error": f"/expand failed: {type(e).__name__}: {str(e)}"}
         )
 
->>>>>>> 941529f (Initial commit)
 
 @app.post("/mistralGrammar")
 async def mistral_grammar(content: TextInput):
@@ -781,14 +729,6 @@ def split_sentences(text):
         # 마침표/느낌표/물음표 없으면 한 문장으로 간주
         return [text]
 
-<<<<<<< HEAD
-@app.post("/cohereHonorific")
-async def cohere_honorific(content: TextInput):
-    co = cohere.ClientV2(COHERE_API_KEY)  # API 키
-
-    user_prompt = f"{content.content}\n\n이 글에서 ~습니다. 처럼 높임말로 바꿔줘. 그리고 결과는 딱 글만 나오게 해줘."
-
-=======
 # 기존
 # @app.post("/cohereHonorific")
 # async def cohere_honorific(content: TextInput):
@@ -826,24 +766,10 @@ async def cohere_honorific(request: Request):
     )
 
     co = cohere.ClientV2(COHERE_API_KEY)
->>>>>>> 941529f (Initial commit)
     response = co.chat(
         model="command-a-03-2025",
         messages=[{"role": "user", "content": user_prompt}]
     )
-<<<<<<< HEAD
-
-    # 메시지에서 텍스트만 추출
-    full_text = response.message.content[0].text
-
-    return {"result": full_text}
-
-@app.post("/cohereInformal")
-async def cohere_honorific(content: TextInput):
-    co = cohere.ClientV2(COHERE_API_KEY)  # API 키
-
-    user_prompt = f"{content.content}\n\n이 글에서 ~했어. 처럼 반말체로 바꿔줘. 그리고 결과는 딱 글만 나오게 해줘."
-=======
     out = response.message.content[0].text
     return {"result": out, "level": level}
 
@@ -876,25 +802,15 @@ async def cohere_informal(payload: InformalInput):
 추가 규칙:
 - 결과는 텍스트만 반환(설명/머리말/따옴표 금지).
 """
->>>>>>> 941529f (Initial commit)
 
     response = co.chat(
         model="command-a-03-2025",
         messages=[{"role": "user", "content": user_prompt}]
     )
-<<<<<<< HEAD
-
-    # 메시지에서 텍스트만 추출
-    full_text = response.message.content[0].text
-
-    return {"result": full_text}
-
-=======
     full_text = response.message.content[0].text
     return {"result": full_text}
 
 
->>>>>>> 941529f (Initial commit)
 @app.post("/translate")
 async def translate_text(request: Request):
     body = await request.json()
@@ -1160,13 +1076,8 @@ async def vision_ocr(image: UploadFile = File(...)):
         print("❌ 서버 에러:", e)
         return {"result": f"서버 에러: {e}"}
 
-<<<<<<< HEAD
-# @app.post("/speech")
-#async def upload_audio(audio: UploadFile = File(...)):
-=======
 @app.post("/speech")
 async def upload_audio(audio: UploadFile = File(...)):
->>>>>>> 941529f (Initial commit)
     start_time = time.time()
 
     # 업로드된 오디오 파일 읽기
@@ -1209,17 +1120,6 @@ async def upload_audio(audio: UploadFile = File(...)):
 
     elapsed_time = time.time() - start_time
 
-<<<<<<< HEAD
-    print("\n" + text + "\n")
-    print(round(elapsed_time, 3))
-    print()
-
-    return {"text": text, "time": round(elapsed_time, 3)} 
-
-@app.post("/editorGrammar")
-async def editorGrammar(content: TextInput):
-    
-=======
     if (text):
         print("\n" + text + "\n")
     print(f"걸린 시간: {elapsed_time:.3f}초")
@@ -1229,7 +1129,6 @@ async def editorGrammar(content: TextInput):
 
 @app.post("/editorGrammar")
 async def editorGrammar(content: TextInput):
->>>>>>> 941529f (Initial commit)
     print(content.content)
     print()
 
@@ -1249,9 +1148,6 @@ async def editorGrammar(content: TextInput):
         # "words": list(result.words.keys()),
         "time": result.time,
     }
-<<<<<<< HEAD
-    
-=======
 @app.post("/promptChange")
 async def expand(request: Request):
     body = await request.json()
@@ -1292,4 +1188,3 @@ async def expand(request: Request):
         message) >= 2 and message[0] == message[-1] and message[0] in ('"', "'") else message
     print(message)
     return {"result": message}
->>>>>>> 941529f (Initial commit)

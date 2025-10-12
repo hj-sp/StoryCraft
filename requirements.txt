@@ -12,11 +12,6 @@ PyPDF2
 google-cloud-translate
 PyYAML==6.0.2
 diff-match-patch
-<<<<<<< HEAD
-torch
-transformers
-=======
->>>>>>> 941529f (Initial commit)
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
