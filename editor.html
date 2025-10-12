@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
     <head>
+<<<<<<< HEAD
+=======
+        <script>
+            window.emitter = window.emitter || { emit() {}, on() {}, off() {} };
+        </script>
+>>>>>>> 941529f (Initial commit)
         <meta charset="utf-8" />
         <title>StoryCraft Editor</title>
         <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -45,7 +51,10 @@
 
         <!-- Main CSS File -->
         <link href="assets/css/main.css" rel="stylesheet" />
+<<<<<<< HEAD
   
+=======
+>>>>>>> 941529f (Initial commit)
     </head>
     <body class="index-page page-editor">
         <header id="header" class="header d-flex align-items-center sticky-top">
@@ -83,6 +92,7 @@
                 </nav>
             </div>
         </header>
+<<<<<<< HEAD
         
         <div class="wrap">
         <!-- 에디터 카드 -->
@@ -145,12 +155,125 @@
                 </div>
                 
                
+=======
+        <div class="wrap">
+            <!-- 에디터 카드 -->
+            <div class="card editor-card">
+                <div class="ql-frame">
+                    <div class="toolbar">
+                        <div id="quill-toolbar">
+                            <span class="ql-formats">
+                                <select class="ql-header">
+                                    <option value="1"></option>
+                                    <option value="2"></option>
+                                    <option selected></option>
+                                </select>
+                                <select class="ql-font">
+                                    <option value="malgun" selected></option>
+                                    <option value="serif"></option>
+                                    <option value="monospace"></option>
+                                    <option value="batang"></option>
+                                    <option value="gungsuh"></option>
+                                    <option value="gulim"></option>
+                                    <option value="noto-sans-kr"></option>
+                                </select>
+                                <select class="ql-size"></select>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button
+                                    class="ql-list"
+                                    value="ordered"
+                                ></button>
+                                <button class="ql-list" value="bullet"></button>
+                                <select class="ql-align"></select>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-link"></button>
+                                <button class="ql-blockquote"></button>
+                                <button class="ql-code-block"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-clean"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button
+                                    type="button"
+                                    id="btn-image"
+                                    class="btn-image"
+                                    title="이미지"
+                                >
+                                    <i class="bi bi-image"></i>
+                                </button>
+                            </span>
+                            <!-- <span class="ql-formats edit-upload">
+                                <input
+                                    id="ocrFile"
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    hidden
+                                />
+                                <label
+                                    for="ocrFile"
+                                    class="edit-upload__btn"
+                                    title="파일 업로드"
+                                    aria-label="파일 업로드"
+                                >
+                                    <i class="bi bi-folder-fill"></i
+                                    ><span class="edit-upload__text"
+                                        >파일 업로드</span
+                                    >
+                                </label>
+                                <span
+                                    id="ocrFileName"
+                                    class="edit-upload__name"
+                                    hidden
+                                ></span>
+                            </span> -->
+                            <span class="ql-formats">
+                                <form id="uploadForm">
+                                    <button
+                                        id="editorStartRecord"
+                                        type="button"
+                                    >
+                                        🎙️
+                                    </button>
+                                    <button
+                                        id="editorStopRecord"
+                                        type="button"
+                                        disabled
+                                    >
+                                        🛑
+                                    </button>
+                                    <button
+                                        id="editorInsertRecord"
+                                        type="button"
+                                        disabled
+                                    >
+                                        ⤵️
+                                    </button>
+                                </form>
+                            </span>
+                            <span class="ql-formats" style="margin-left: auto">
+                                <button id="editorPdfDownloadBtn">💾</button>
+                            </span>
+                        </div>
+                    </div>
+                    <div id="quill"></div>
+                </div>
+>>>>>>> 941529f (Initial commit)
 
                 <textarea id="userInput" style="display: none"></textarea>
                 <input id="styleInput" type="hidden" />
                 <input id="translateInput" type="hidden" />
             </div>
 
+<<<<<<< HEAD
             <!-- 사이드 툴 패널 -->
             <div class="card side">
                 <section class="panel">
@@ -747,6 +870,393 @@ quill.on('selection-change', (range)=>{ window.__lastQuillRange = range; });
                 document.getElementById('btn-ocr')?.addEventListener('click', doOCRorFile);
 
             });
+=======
+            <div id="scDrawerBackdrop" class="sc-drawer__backdrop" hidden></div>
+            <aside id="scDrawer" class="sc-drawer" aria-hidden="true">
+                <div class="sc-drawer__head">
+                    <div id="scDrawerTitle" class="sc-drawer__title">
+                        AI Panel
+                    </div>
+                    <button
+                        id="scDrawerClose"
+                        class="sc-drawer__close"
+                        aria-label="close"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <div id="scDrawerBody" class="sc-drawer__body"></div>
+                <div id="scDrawerFoot" class="sc-drawer__foot"></div>
+            </aside>
+
+            <!-- 사이드 툴 패널 -->
+        </div>
+        <!-- Editor overlay spinner -->
+        <div id="edit_spinner" class="edit_spinner" aria-hidden="true">
+            <div class="edit_spinner__backdrop"></div>
+            <div
+                class="edit_spinner__center"
+                role="status"
+                aria-live="polite"
+                aria-label="처리 중"
+            >
+                <div class="edit_spinner__ring"></div>
+                <div class="edit_spinner__label">처리 중…</div>
+            </div>
+        </div>
+        <div
+            id="imgMenu"
+            class="img-menu"
+            aria-hidden="true"
+            role="menu"
+            aria-labelledby="btn-image"
+        >
+            <div class="img-menu__title">다음에서 그림 삽입:</div>
+            <button
+                type="button"
+                id="imgMenu-insert"
+                class="img-menu__item"
+                role="menuitem"
+            >
+                <i class="bi bi-image"></i> 이미지 삽입
+            </button>
+            <button
+                type="button"
+                id="imgMenu-ocr"
+                class="img-menu__item"
+                role="menuitem"
+            >
+                <i class="bi bi-file-earmark-text"></i> 텍스트 추출
+            </button>
+            <!-- 숨겨진 파일 input을 미리 DOM에 추가 -->
+            <input
+                type="file"
+                id="ocrFileInput"
+                accept="
+    image/*,
+    .pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt,
+    application/pdf,
+    application/msword,
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document,
+    application/haansoft-hwp,
+    application/vnd.hancom.hwpx+zip,
+    application/vnd.ms-excel,
+    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,
+    application/vnd.ms-powerpoint,
+    application/vnd.openxmlformats-officedocument.presentationml.presentation,
+    text/plain
+  "
+                style="display: none"
+            />
+        </div>
+        <!-- OCR 결과 팝업 -->
+        <div
+            id="ocrModal"
+            class="ocr-modal"
+            aria-hidden="true"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="ocr-modal__dialog">
+                <div class="ocr-modal__header">
+                    <strong>이미지 텍스트 추출</strong>
+                    <button
+                        type="button"
+                        id="ocrClose"
+                        class="ocr-modal__close"
+                        aria-label="닫기"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <!-- <div class="ocr-modal__body">
+                    <textarea
+                        id="ocrText"
+                        class="ocr-modal__textarea"
+                        placeholder="여기에 추출된 텍스트가 표시됩니다…"
+                    ></textarea>
+                </div> -->
+                <div class="editor_image_container">
+                    <div class="card editor-card">
+                        <div>
+                            <div id="quill2" class="editor_quill2 editor"></div>
+                        </div>
+
+                        <!-- <textarea id="userInput2" style="display: none"></textarea>
+                        <input id="styleInput2" type="hidden" />
+                        <input id="translateInput2" type="hidden" /> -->
+                    </div>
+                    <div class="editor_image_prompt_container">
+                        <textarea
+                            id="imagePromptText"
+                            class="editor_image_prompt_input"
+                            rows="3"
+                            cols="50"
+                            placeholder="프롬프트를 입력하세요"
+                        ></textarea>
+
+                        <div>
+                            <button
+                                class="editor_image_prompt_insert"
+                                id="image-prompt-change"
+                            >
+                                ⬆
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="ocrInsert" type="button" class="insert-btn">
+                        텍스트 삽입
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Floating Tool Dock -->
+        <nav class="sc-dock" id="scDock" aria-label="AI tools">
+            <!-- 1) 프롬프트 -->
+            <button
+                class="sc-dock__btn"
+                data-action="prompt"
+                data-title="AI 프롬프트"
+                aria-label="AI 프롬프트"
+            >
+                <!-- chat bubble -->
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M21 15a4 4 0 0 1-4 4H8l-5 5V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"
+                    />
+                </svg>
+                <span class="sc-tip">AI 프롬프트</span>
+            </button>
+
+            <!-- 2) 번역 -->
+            <button
+                class="sc-dock__btn"
+                data-action="translate"
+                aria-label="번역"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path d="M4 5h16M9 3v2m6-2v2M5 8h14l-7 13z" />
+                </svg>
+                <span class="sc-tip">번역</span>
+            </button>
+
+            <!-- 3) 문체변경 -->
+            <button
+                class="sc-dock__btn"
+                data-action="style"
+                aria-label="문체변경"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path d="M4 20h16M7 20l5-16 5 16M10 14h8" />
+                </svg>
+                <span class="sc-tip">문체변경</span>
+            </button>
+
+            <!-- 4) 높임말 -->
+            <button
+                class="sc-dock__btn"
+                data-action="honorific"
+                aria-label="높임말"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="7" r="4" />
+                    <path d="M6 21v-2a6 6 0 0 1 12 0v2" />
+                </svg>
+                <span class="sc-tip">높임말</span>
+            </button>
+
+            <!-- 5) 반말 -->
+            <button
+                class="sc-dock__btn"
+                data-action="informal"
+                aria-label="반말"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path d="M21 15a4 4 0 0 1-4 4H8l-5 5V7a4 4 0 0 1 4-4h5" />
+                </svg>
+                <span class="sc-tip">반말</span>
+            </button>
+
+            <!-- 6) 재작성 -->
+            <button
+                class="sc-dock__btn"
+                data-action="rewrite"
+                aria-label="재작성"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path d="M3 7h13M3 12h9M3 17h6M21 7l-4 4 4 4" />
+                </svg>
+                <span class="sc-tip">재작성</span>
+            </button>
+
+            <!-- 7) 요약 -->
+            <button
+                class="sc-dock__btn"
+                data-action="summary"
+                aria-label="요약"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path d="M4 4h16v16H4z" />
+                    <path d="M8 8h8M8 12h5" />
+                </svg>
+                <span class="sc-tip">요약</span>
+            </button>
+
+            <!-- 8) 확장 -->
+            <button class="sc-dock__btn" data-action="expand" aria-label="확장">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path d="M3 10h7V3M21 14h-7v7M3 3l7 7M21 21l-7-7" />
+                </svg>
+                <span class="sc-tip">확장</span>
+            </button>
+
+            <!-- 9) 문법 교정 -->
+            <button
+                class="sc-dock__btn"
+                data-action="grammar"
+                aria-label="문법 교정"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#2e7d6b"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M4 19.5V6a2 2 0 0 1 2-2h8l6 6v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"
+                    />
+                    <path d="M14 4v4h4" />
+                    <path d="M9 15l2 2 4-4" />
+                </svg>
+                <span class="sc-tip">문법 교정</span>
+            </button>
+        </nav>
+        <!-- 하나의 큰 라벨 박스 -->
+        <aside id="scDockLabels" class="sc-dock__labels" aria-hidden="true">
+            <div class="sc-dock__labelcol">
+                <div class="sc-dock__label">AI 프롬프트</div>
+                <div class="sc-dock__label">번역</div>
+                <div class="sc-dock__label">문체변경</div>
+                <div class="sc-dock__label">높임말</div>
+                <div class="sc-dock__label">반말</div>
+                <div class="sc-dock__label">재작성</div>
+                <div class="sc-dock__label">요약</div>
+                <div class="sc-dock__label">확장</div>
+                <div class="sc-dock__label">문법 교정</div>
+            </div>
+        </aside>
+        <div id="customContextMenu" class="custom-context-menu" hidden>
+            <button data-action="style" class="has-submenu">문체 변경 ▸</button>
+            <button data-action="translate" class="has-submenu">번역 ▸</button>
+            <button data-action="summary">요약</button>
+            <button data-action="expand">확장</button>
+            <button data-action="honorific">높임말</button>
+            <button data-action="informal">반말</button>
+            <button data-action="rewrite">재작성</button>
+            <button data-action="grammar">문법 교정</button>
+
+            <!-- 문체 변경 서브메뉴 -->
+            <div id="styleSubmenu" class="submenu" hidden>
+                <button data-subaction="casual">구어체</button>
+                <button data-subaction="formal">격식체</button>
+                <button data-subaction="literary">문학체</button>
+                <button data-subaction="academic">학술체</button>
+            </div>
+            <!-- 번역 서브메뉴 -->
+            <div id="translateSubmenu" class="submenu" hidden>
+                <button data-subaction="gu">구자라트어</button>
+                <button data-subaction="el">그리스어</button>
+                <button data-subaction="ne">네팔어</button>
+                <button data-subaction="nl">네덜란드어</button>
+                <button data-subaction="de">독일어</button>
+                <button data-subaction="ru">러시아어</button>
+                <button data-subaction="ro">루마니아어</button>
+                <button data-subaction="mr">마라티어</button>
+                <button data-subaction="ms">말레이어</button>
+                <button data-subaction="vi">베트남어</button>
+                <button data-subaction="bn">벵골어</button>
+                <button data-subaction="sv">스웨덴어</button>
+                <button data-subaction="es">스페인어</button>
+                <button data-subaction="af">아프리칸스어</button>
+                <button data-subaction="ar">아랍어</button>
+                <button data-subaction="en">영어</button>
+                <button data-subaction="uk">우크라이나어</button>
+                <button data-subaction="it">이탈리아어</button>
+                <button data-subaction="ja">일본어</button>
+                <button data-subaction="jv">자바어</button>
+                <button data-subaction="ka">조지아어</button>
+                <button data-subaction="zh-CN">중국어(간체)</button>
+                <button data-subaction="zh-TW">중국어(번체)</button>
+                <button data-subaction="ta">타밀어</button>
+                <button data-subaction="th">태국어</button>
+                <button data-subaction="tr">터키어</button>
+                <button data-subaction="fa">페르시아어</button>
+                <button data-subaction="pt">포르투갈어</button>
+                <button data-subaction="pl">폴란드어</button>
+                <button data-subaction="fr">프랑스어</button>
+                <button data-subaction="ko">한국어</button>
+                <button data-subaction="hi">힌디어</button>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+
+        <script src="https://cdn.jsdelivr.net/npm/quill-blot-formatter@1.0.5/dist/quill-blot-formatter.min.js"></script>
+
+        <script>
+            // 플러그인 등록
+            if (window.QuillBlotFormatter) {
+                Quill.register(
+                    'modules/blotFormatter',
+                    window.QuillBlotFormatter.default ||
+                        window.QuillBlotFormatter
+                );
+            }
+>>>>>>> 941529f (Initial commit)
         </script>
 
         <!-- Preloader -->
@@ -761,6 +1271,7 @@ quill.on('selection-change', (range)=>{ window.__lastQuillRange = range; });
         <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
         <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
 
+<<<<<<< HEAD
         <script src="assets/js/script.js"></script>
         <script src="assets/js/main.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
@@ -1045,5 +1556,181 @@ if (e.target.closest('#imgMenu-ocr')) {
 </div>
 
 
+=======
+        <script src="assets/js/main.js"></script>
+        <script src="assets/js/script.js?v=20251003"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+
+        <script>
+            (function () {
+                (function setupErrorLogger() {
+                    const tag = (t) => `%c${t}`;
+                    const style = 'color:#e11d48;font-weight:600';
+                    window.addEventListener('error', (e) => {
+                        console.log(
+                            tag('[JS error]'),
+                            style,
+                            e.message,
+                            e.filename,
+                            e.lineno,
+                            e.colno
+                        );
+                    });
+                    window.addEventListener('unhandledrejection', (e) => {
+                        console.log(
+                            tag('[Promise rejection]'),
+                            style,
+                            e.reason
+                        );
+                    });
+                })();
+
+                window.SCTPL = window.SCTPL || {};
+                window.registerTemplates =
+                    window.registerTemplates ||
+                    function (T) {
+                        if (T && typeof T === 'object')
+                            Object.assign(window.SCTPL, T);
+                    };
+                try {
+                    if (typeof TPL === 'object' && TPL)
+                        Object.assign(window.SCTPL, TPL);
+                } catch (e) {
+                    console.error('[tpl publish]', e);
+                }
+                window.SCTPL.prompt ??= {
+                    title: 'AI 프롬프트',
+                    body: '<div style="padding:8px 0">로딩…</div>',
+                    foot: '',
+                };
+
+                /* 유틸 */
+                function titleFrom(btn) {
+                    return (
+                        btn?.dataset.title ||
+                        btn?.getAttribute?.('aria-label') ||
+                        btn?.querySelector?.('.sc-tip')?.textContent ||
+                        'AI Panel'
+                    ).trim();
+                }
+                const getTpl = (key) =>
+                    (window.SCTPL && window.SCTPL[key]) || null;
+
+                /*  패널 DOM 보장 */
+                function ensureInlineDrawer() {
+                    let drawer = document.getElementById('scDrawer');
+                    let backdrop = document.getElementById('scDrawerBackdrop');
+                    const wrap = document.querySelector('.wrap');
+                    if (!drawer) {
+                        backdrop = document.createElement('div');
+                        backdrop.id = 'scDrawerBackdrop';
+                        backdrop.className = 'sc-drawer__backdrop';
+                        backdrop.hidden = true;
+
+                        drawer = document.createElement('aside');
+                        drawer.id = 'scDrawer';
+                        drawer.className = 'sc-drawer';
+                        drawer.setAttribute('aria-hidden', 'true');
+                        drawer.innerHTML = `
+        <div class="sc-drawer__head">
+          <div id="scDrawerTitle" class="sc-drawer__title">AI Panel</div>
+          <button id="scDrawerClose" class="sc-drawer__close" aria-label="close">✕</button>
+        </div>
+        <div id="scDrawerBody" class="sc-drawer__body"></div>
+        <div id="scDrawerFoot" class="sc-drawer__foot"></div>
+      `;
+                        (wrap || document.body).append(backdrop, drawer);
+                    }
+                    return drawer;
+                }
+                function closeDrawer() {
+                    const wrap = document.querySelector('.wrap');
+                    const drawer = document.getElementById('scDrawer');
+                    drawer?.classList.remove('open');
+                    drawer?.setAttribute('aria-hidden', 'true');
+                    wrap?.classList.remove('with-panel');
+                }
+
+                function openSimple(key = 'summary', btn) {
+                    const drawer = ensureInlineDrawer();
+                    const wrap = document.querySelector('.wrap');
+                    const titleEl = document.getElementById('scDrawerTitle');
+                    const body = document.getElementById('scDrawerBody');
+                    const foot = document.getElementById('scDrawerFoot');
+
+                    if (titleEl)
+                        titleEl.textContent = titleFrom(btn) || 'AI Panel';
+                    drawer.dataset.key = key || 'summary';
+                    drawer.classList.add('open');
+                    drawer.setAttribute('aria-hidden', 'false');
+                    wrap?.classList.add('with-panel');
+
+                    const tpl = getTpl(key);
+                    if (body) {
+                        body.innerHTML =
+                            tpl?.body ||
+                            `
+        <div style="padding:10px 0; color:#6b7280; line-height:1.6">
+          <p><b>${
+              titleFrom(btn) || 'AI Panel'
+          }</b> 패널을 불러오는 중입니다.</p>
+          <p>만약 계속 이 상태면 <code>assets/js/script.js</code> 초기화 에러일 수 있어요.</p>
+        </div>
+      `;
+                    }
+                    if (foot) foot.innerHTML = tpl?.foot || '';
+                }
+                window.DEBUG_OPEN_DRAWER_FALLBACK = openSimple;
+
+                if (typeof window.DEBUG_OPEN_DRAWER !== 'function') {
+                    window.DEBUG_OPEN_DRAWER =
+                        window.DEBUG_OPEN_DRAWER_FALLBACK;
+                }
+
+                function openBridge(key = 'summary', btn) {
+                    const main = window.DEBUG_OPEN_DRAWER;
+                    if (
+                        typeof main === 'function' &&
+                        main !== window.DEBUG_OPEN_DRAWER_FALLBACK
+                    ) {
+                        return main(key, btn);
+                    }
+                    return window.DEBUG_OPEN_DRAWER_FALLBACK(key, btn);
+                }
+
+                (function bindDock() {
+                    const dockById = document.getElementById('scDock');
+                    const dockByClass = document.querySelector('.sc-dock');
+
+                    function onDockClick(e) {
+                        const btn = e.target.closest?.('.sc-dock__btn');
+                        if (!btn) return;
+                        const key = btn.dataset.action || 'prompt';
+                        openBridge(key, btn);
+                    }
+                    dockById?.addEventListener('click', onDockClick);
+                    dockByClass?.addEventListener('click', onDockClick);
+
+                    document.addEventListener('click', (e) => {
+                        const btn = e.target.closest?.('.sc-dock__btn');
+                        if (!btn) return;
+                        onDockClick(e);
+                    });
+                })();
+
+                document.addEventListener('click', (e) => {
+                    if (
+                        !e.target.closest?.('#scDrawerClose') &&
+                        e.target.id !== 'scDrawerBackdrop'
+                    )
+                        return;
+                    closeDrawer();
+                });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeDrawer();
+                });
+            })();
+        </script>
+>>>>>>> 941529f (Initial commit)
     </body>
 </html>
