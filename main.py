@@ -186,6 +186,26 @@ def _crop_to_last_boundary(s: str) -> str:
 
 # 문서 이미지 텍스트 추출 관련
 
+def sniff_raster_image(data: bytes) -> bytes:
+    """확장자 없이 들어와도 PNG/JPEG/GIF/BMP/TIFF/WEBP면 그대로 반환, 아니면 b''."""
+    if not data:
+        return b""
+    head = data[:16]
+    # PNG
+    if head.startswith(b"\x89PNG\r\n\x1a\n"): return data
+    # JPEG
+    if head.startswith(b"\xff\xd8\xff"): return data
+    # GIF
+    if head.startswith(b"GIF8"): return data
+    # BMP
+    if head.startswith(b"BM"): return data
+    # TIFF (II*/MM*)
+    if head.startswith(b"II*\x00") or head.startswith(b"MM\x00*"): return data
+    # WEBP: RIFF....WEBP
+    if head.startswith(b"RIFF") and b"WEBP" in data[:32]: return data
+    return b""
+
+
 def should_ocr(img_bytes: bytes, min_wh: int = 28) -> bool:
     try:
         from PIL import Image
@@ -431,17 +451,19 @@ def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
             names = zf.namelist()
 
-            # 1) 이미지 OCR (Contents/Resources 또는 Contents 아래 이미지)
-            for name in names:
-                low = name.lower()
-                if (("/resources/" in low or low.startswith("contents/"))
-                    and low.rsplit(".", 1)[-1] in ("png","jpg","jpeg","bmp","gif","tif","tiff","webp")):
-                    try:
-                        img_bytes = zf.read(name)
+    # 1) 이미지 OCR (확장자 없어도 매직 감지로 처리)
+        for name in names:
+            low = name.lower()
+            if "/resources/" in low or low.startswith("contents/"):
+                try:
+                    blob = zf.read(name)
+                    img_bytes = sniff_raster_image(blob)  # ★ 확장자 대신 매직바이트 판별
+                    if img_bytes and should_ocr (img_bytes):
                         txt = ocr_image_bytes(img_bytes).strip()
-                        if txt: ocr_parts.append(txt)
-                    except Exception as e:
-                        print("hwpx image ocr err:", name, e)
+                        if txt:
+                            ocr_parts.append(txt)
+                except Exception as e:
+                    print("hwpx image sniff ocr err:", name, e)
 
             # 2) 본문 텍스트 (Contents/*.xml 전부 긁기)
             xml_names = [n for n in names if n.lower().startswith("contents/") and n.lower().endswith(".xml")]
@@ -516,15 +538,21 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
 
         elif ext == "hwpx":
             body, ocr_list = extract_from_hwpx_zip(binary)
+
             if not (body and body.strip()):
+       
                 try:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".hwpx") as f:
-                        f.write(binary)
-                        f.flush()
+                        f.write(binary); f.flush()
                         pdf_path = libreoffice_to_pdf(f.name)
-                    body = extract_pdf_text(pdf_path)
+                    with open(pdf_path, "rb") as pf:
+                        pdf_bytes = pf.read()
+         
+                    body = extract_pdf_in_reading_order_bytes(pdf_bytes)
+                    ocr_list = [] 
                 except Exception as e:
                     print("hwpx fallback failed:", e)
+
 
         elif ext == "hwp":
             body = extract_text_from_hwp_hwp5txt(binary)  # 없으면 빈문자열
