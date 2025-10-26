@@ -42,7 +42,6 @@ import olefile
 import chardet      
 from docx import Document
 from pptx import Presentation
-import shutil
 
 
 try:
@@ -187,6 +186,26 @@ def _crop_to_last_boundary(s: str) -> str:
 
 # 문서 이미지 텍스트 추출 관련
 
+def sniff_raster_image(data: bytes) -> bytes:
+    """확장자 없이 들어와도 PNG/JPEG/GIF/BMP/TIFF/WEBP면 그대로 반환, 아니면 b''."""
+    if not data:
+        return b""
+    head = data[:16]
+    # PNG
+    if head.startswith(b"\x89PNG\r\n\x1a\n"): return data
+    # JPEG
+    if head.startswith(b"\xff\xd8\xff"): return data
+    # GIF
+    if head.startswith(b"GIF8"): return data
+    # BMP
+    if head.startswith(b"BM"): return data
+    # TIFF (II*/MM*)
+    if head.startswith(b"II*\x00") or head.startswith(b"MM\x00*"): return data
+    # WEBP: RIFF....WEBP
+    if head.startswith(b"RIFF") and b"WEBP" in data[:32]: return data
+    return b""
+
+
 def should_ocr(img_bytes: bytes, min_wh: int = 28) -> bool:
     try:
         from PIL import Image
@@ -255,59 +274,6 @@ def extract_pdf_in_reading_order(pdf_path: str) -> str:
 # 포맷별 추출기 (본문 + 내장 이미지)
 # 각 함수는 (본문텍스트, 이미지OCR리스트) 튜플 반환
 # ---------------------------
-def sniff_raster_image(data: bytes) -> bytes:
-    if not data: return b""
-    head = data[:16]
-    if head.startswith(b"\x89PNG\r\n\x1a\n"): return data     # PNG
-    if head.startswith(b"\xff\xd8\xff"):      return data     # JPEG
-    if head.startswith(b"GIF8"):              return data     # GIF
-    if head.startswith(b"BM"):                return data     # BMP
-    if head.startswith(b"II*\x00") or head.startswith(b"MM\x00*"): return data  # TIFF
-    if head.startswith(b"RIFF") and b"WEBP" in data[:32]: return data           # WEBP
-    return b""
-
-def try_svg_to_png_bytes(xml_bytes: bytes) -> bytes:
-    try:
-        import cairosvg
-        if b"<svg" in xml_bytes[:2048].lower():
-            return cairosvg.svg2png(bytestring=xml_bytes)
-    except Exception:
-        pass
-    return b""
-with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-    names = zf.namelist()
-    found, ocred = 0, 0
-
-    for name in names:
-        low = name.lower()
-        try:
-            blob = zf.read(name)
-        except Exception as e:
-            print("hwpx read err:", name, e); continue
-
-        # A) 먼저 래스터 이미지 감지 (확장자/경로 무시)
-        img = sniff_raster_image(blob)
-
-        # B) 아니면 SVG인지 확인해서 PNG로 변환 시도
-        if not img and low.endswith(".xml") and b"<svg" in blob[:4096].lower():
-            img = try_svg_to_png_bytes(blob)
-
-        # C) 그래도 아니면 넘어감 (EMF/WMF 등은 폴백 PDF 렌더링으로만 처리 가능)
-        if not img:
-            continue
-
-        # 너무 작은 아이콘은 건너뛰지 않도록 임계값 완화
-        if should_ocr(img, min_wh=16):
-            found += 1
-            try:
-                txt = (ocr_image_bytes(img) or "").strip()
-                if txt:
-                    ocr_parts.append(txt); ocred += 1
-            except Exception as e:
-                print("hwpx image ocr err:", name, e)
-
-    print(f"[HWPX images] found={found}, ocred={ocred}")
-
 def extract_from_image(raw: bytes) -> Tuple[str, List[str]]:
     # 단일 이미지 파일 자체 OCR
     return "", [ocr_image_bytes(raw)]
@@ -477,33 +443,30 @@ def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
     import zipfile, io, re, xml.etree.ElementTree as ET
     text_parts, ocr_parts = [], []
 
-    # --- 1) 이미지 OCR 패스 (ZipFile #1) ---
+    def add_text(s: str):
+        s = (s or "").strip()
+        if s: text_parts.append(s)
+
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
             names = zf.namelist()
+
+            # 1) 이미지 OCR (Contents/Resources 또는 Contents 아래 이미지)
             for name in names:
                 low = name.lower()
-                # XML/REL/HPF 같은 비이미지 리소스는 건너뛰기
-                if low.endswith((".xml",".rel",".hpf",".rels")):
-                    continue
-                if ("/resources/" in low or low.startswith("contents/")):
+                if (("/resources/" in low or low.startswith("contents/"))
+                    and low.rsplit(".", 1)[-1] in ("png","jpg","jpeg","bmp","gif","tif","tiff","webp")):
                     try:
-                        blob = zf.read(name)
-                        img = sniff_raster_image(blob)     # 확장자 없이도 판별
-                        if img and should_ocr(img, min_wh=20):  # 필요하면 더 낮춰도 됨
-                            txt = ocr_image_bytes(img).strip()
-                            if txt: ocr_parts.append(txt)
+                        img_bytes = zf.read(name)
+                        txt = ocr_image_bytes(img_bytes).strip()
+                        if txt: ocr_parts.append(txt)
                     except Exception as e:
-                        print("hwpx image sniff ocr err:", name, e)
-    except Exception as e:
-        print("hwpx image pass err:", e)
+                        print("hwpx image ocr err:", name, e)
 
-    # --- 2) 본문 XML 패스 (ZipFile #2) ---
-    try:
-        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-            names = zf.namelist()
+            # 2) 본문 텍스트 (Contents/*.xml 전부 긁기)
             xml_names = [n for n in names if n.lower().startswith("contents/") and n.lower().endswith(".xml")]
             if not xml_names:
+                # 일부 문서는 루트에 xml이 있음
                 xml_names = [n for n in names if n.lower().endswith(".xml")]
 
             for name in xml_names:
@@ -512,25 +475,24 @@ def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
                     try:
                         root = ET.fromstring(xml_bytes)
                     except Exception:
-                        # 파싱 실패 시 태그 제거 러프 파싱(최후수단)
-                        text = xml_bytes.decode("utf-8", errors="ignore")
-                        text = re.sub(r"<[^>]+>", " ", text)
-                        text = re.sub(r"\s+", " ", text).strip()
-                        if text: text_parts.append(text)
+                        # 파서 실패 시 태그 제거 러프 추출(최후수단)
+                        text = re.sub(r"<[^>]+>", " ", xml_bytes.decode("utf-8", errors="ignore"))
+                        add_text(re.sub(r"\s+", " ", text))
                         continue
 
-                    # 문단 단위로 합치기(중복 줄이기)
+                    # 문단 보강
                     for p in root.findall(".//{*}p"):
                         buf = []
                         for t in p.findall(".//{*}t"):
                             if t.text: buf.append(t.text.strip())
                         line = " ".join(buf).strip()
-                        if line: text_parts.append(line)
+                        if line: add_text(line)
 
                 except Exception as e:
                     print("hwpx xml parse err:", name, e)
+
     except Exception as e:
-        print("hwpx text pass err:", e)
+        print("hwpx zip scan err:", e)
 
     body = "\n".join(text_parts).strip()
     return body, [t for t in ocr_parts if t]
@@ -574,21 +536,15 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
 
         elif ext == "hwpx":
             body, ocr_list = extract_from_hwpx_zip(binary)
-
-    # 폴백은 선택: soffice 있을 때만 시도
-            if not (body and body.strip()) and shutil.which("soffice"):
+            if not (body and body.strip()):
                 try:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".hwpx") as f:
-                        f.write(binary); f.flush()
+                        f.write(binary)
+                        f.flush()
                         pdf_path = libreoffice_to_pdf(f.name)
-                    with open(pdf_path, "rb") as pf:
-                        pdf_bytes = pf.read()
-            # 텍스트+이미지 OCR 함께
-                    body = extract_pdf_in_reading_order_bytes(pdf_bytes)
-                    ocr_list = []  
+                    body = extract_pdf_text(pdf_path)
                 except Exception as e:
                     print("hwpx fallback failed:", e)
-
 
         elif ext == "hwp":
             body = extract_text_from_hwp_hwp5txt(binary)  # 없으면 빈문자열
@@ -1672,25 +1628,26 @@ async def translate_text(request: Request):
 
 @app.post("/fileScan")
 async def file_scan(file: UploadFile = File(...)):
+    # 1) 업로드 바이트는 '한 번만' 읽기
     raw = await file.read()
     filename = file.filename or "upload"
+
     try:
-        # 🔎 디버그
-        print("fileScan recv:", filename, "raw_len=", len(raw))
+        # 2) 한 가지 디스패처로 통일 (바이트 기반)
+        merged = extract_all_text_and_images(raw, filename)
 
-        merged = extract_all_text_and_images(raw, filename) or ""
-        merged = merged.strip()
+        # 3) 빈 값/길이 제한 처리
+        merged = (merged or "").strip()
+        MAX = 100_000
+        if len(merged) > MAX:
+            merged = merged[:MAX] + "\n…(생략)"
 
-        # 🔎 길이 로그
-        print("fileScan out_len:", len(merged))
+        # 4) 프런트가 기대하는 키 이름으로 응답 (result)
+        return {"filename": filename, "result": merged}
 
-        # 호환을 위해 result/text 모두 제공
-        return {"filename": filename, "result": merged, "text": merged}
     except Exception as e:
-        err = f"{type(e).__name__}: {e}"
-        print("⚠️ [fileScan fatal]", err)
-        return {"filename": filename, "result": "", "text": "", "error": err}
-
+        print("⚠️ [fileScan fatal]", e)
+        return {"filename": filename, "result": "", "error": str(e)}
 
 
 @app.post("/pdfScan")
