@@ -259,12 +259,54 @@ def sniff_raster_image(data: bytes) -> bytes:
     if not data: return b""
     head = data[:16]
     if head.startswith(b"\x89PNG\r\n\x1a\n"): return data     # PNG
-    if head.startswith(b"\xff\xd8\xff"): return data          # JPEG
-    if head.startswith(b"GIF8"): return data                  # GIF
-    if head.startswith(b"BM"): return data                    # BMP
+    if head.startswith(b"\xff\xd8\xff"):      return data     # JPEG
+    if head.startswith(b"GIF8"):              return data     # GIF
+    if head.startswith(b"BM"):                return data     # BMP
     if head.startswith(b"II*\x00") or head.startswith(b"MM\x00*"): return data  # TIFF
     if head.startswith(b"RIFF") and b"WEBP" in data[:32]: return data           # WEBP
     return b""
+
+def try_svg_to_png_bytes(xml_bytes: bytes) -> bytes:
+    try:
+        import cairosvg
+        if b"<svg" in xml_bytes[:2048].lower():
+            return cairosvg.svg2png(bytestring=xml_bytes)
+    except Exception:
+        pass
+    return b""
+with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+    names = zf.namelist()
+    found, ocred = 0, 0
+
+    for name in names:
+        low = name.lower()
+        try:
+            blob = zf.read(name)
+        except Exception as e:
+            print("hwpx read err:", name, e); continue
+
+        # A) 먼저 래스터 이미지 감지 (확장자/경로 무시)
+        img = sniff_raster_image(blob)
+
+        # B) 아니면 SVG인지 확인해서 PNG로 변환 시도
+        if not img and low.endswith(".xml") and b"<svg" in blob[:4096].lower():
+            img = try_svg_to_png_bytes(blob)
+
+        # C) 그래도 아니면 넘어감 (EMF/WMF 등은 폴백 PDF 렌더링으로만 처리 가능)
+        if not img:
+            continue
+
+        # 너무 작은 아이콘은 건너뛰지 않도록 임계값 완화
+        if should_ocr(img, min_wh=16):
+            found += 1
+            try:
+                txt = (ocr_image_bytes(img) or "").strip()
+                if txt:
+                    ocr_parts.append(txt); ocred += 1
+            except Exception as e:
+                print("hwpx image ocr err:", name, e)
+
+    print(f"[HWPX images] found={found}, ocred={ocred}")
 
 def extract_from_image(raw: bytes) -> Tuple[str, List[str]]:
     # 단일 이미지 파일 자체 OCR
