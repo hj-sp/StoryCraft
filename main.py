@@ -185,8 +185,11 @@ def _crop_to_last_boundary(s: str) -> str:
 # 문서 이미지 텍스트 추출 관련
 
 def ocr_image_bytes(img_bytes: bytes) -> str:
-    """Google Vision으로 이미지 바이트 OCR → clean_ocr_text 적용"""
     if not img_bytes:
+        return ""
+    # ✅ 가드 추가: 초기화 실패시 바로 빈 문자열, 로그 남김
+    if vision_client is None:
+        print("[OCR] vision_client is None (check GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS)")
         return ""
     try:
         image = vision.Image(content=img_bytes)
@@ -242,6 +245,7 @@ def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
         print("docx text parse err:", e)
     # 2) 내장 이미지 (ZIP 스캔)
     try:
+        found = 0
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
             for name in zf.namelist():
                 low = name.lower()
@@ -249,6 +253,8 @@ def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
                     "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
                 ):
                     ocr_parts.append(ocr_image_bytes(zf.read(name)))
+                    found += 1
+                print(f"[DOCX] media images found: {found}, ocred: {sum(1 for t in ocr_parts if t)}")
     except Exception as e:
         print("docx media zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
