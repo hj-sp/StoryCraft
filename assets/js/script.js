@@ -7624,3 +7624,107 @@ info.addEventListener('mouseleave', () => {
         tooltip = null;
     }
 });
+
+//문서 안 이미지도 추출
+
+// [본문 / 이미지 OCR] 구분 렌더
+function renderScanResult(mergedText) {
+  const area = document.getElementById('resultArea');
+  if (!area) return;
+  area.innerHTML = '';
+
+  const marker = '\n\n[📷 이미지 OCR]\n';
+  let bodyText = mergedText || '';
+  let imgText = '';
+
+  const idx = bodyText.indexOf(marker);
+  if (idx >= 0) {
+    imgText = bodyText.slice(idx + marker.length).trim();
+    bodyText = bodyText.slice(0, idx).trim();
+  } else if (bodyText.startsWith('[📷 이미지 OCR]\n')) {
+    imgText = bodyText.replace('[📷 이미지 OCR]\n', '').trim();
+    bodyText = '';
+  }
+
+  // 본문 섹션
+  if (bodyText) {
+    const sec = document.createElement('section');
+    sec.className = 'sc-block';
+    sec.innerHTML = `
+      <h3 style="margin:0 0 8px;">본문 텍스트</h3>
+      <pre style="white-space:pre-wrap;word-break:break-word;margin:0;">${escapeHtml(bodyText)}</pre>
+    `;
+    area.appendChild(sec);
+  }
+
+  // 이미지 OCR 섹션 (접기/펼치기)
+  if (imgText) {
+    const sec = document.createElement('section');
+    sec.className = 'sc-block';
+    const id = 'img-ocr-' + Math.random().toString(36).slice(2,8);
+    sec.innerHTML = `
+      <h3 style="margin:18px 0 8px;">📷 이미지 OCR <button id="${id}-toggle" style="margin-left:6px;font-size:12px;">접기</button></h3>
+      <pre id="${id}-pre" style="white-space:pre-wrap;word-break:break-word;margin:0;">${escapeHtml(imgText)}</pre>
+    `;
+    area.appendChild(sec);
+
+    const btn = sec.querySelector('#'+id+'-toggle');
+    const pre = sec.querySelector('#'+id+'-pre');
+    btn.addEventListener('click', () => {
+      const hidden = pre.style.display === 'none';
+      pre.style.display = hidden ? '' : 'none';
+      btn.textContent = hidden ? '접기' : '펼치기';
+    });
+  }
+
+  if (!bodyText && !imgText) {
+    area.textContent = '텍스트를 추출하지 못했습니다.';
+  }
+}
+
+// XSS 방지용
+function escapeHtml(s) {
+  return (s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// 파일 업로드 시 자동 추출 & 렌더
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('fileAny');
+  const spinner = document.getElementById('loadingSpinner');
+  const area = document.getElementById('resultArea');
+  if (!input || !area) return;
+
+  input.addEventListener('change', async () => {
+    const file = getSelectedFile && getSelectedFile();
+    if (!file) return;
+
+    // 스피너 ON
+    if (spinner) spinner.style.display = 'block';
+    area.innerHTML = '';
+
+    try {
+      let text;
+      if (isImageFile && isImageFile(file)) {
+        // 이미지 단일 파일은 visionOCR 사용
+        const fd = new FormData();
+        fd.append('image', file);
+        const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('visionOCR 실패: ' + res.status);
+        const js = await res.json();
+        text = (js.text || js.result || '').toString();
+      } else {
+        // 문서 계열은 /fileScan (본문 + 이미지OCR 합쳐 내려옴)
+        text = await extractTextFromAnyFile(file); // 이미 구현됨
+      }
+      window.lastExtractedText = text;
+      renderScanResult(text);
+    } catch (e) {
+      console.error(e);
+      area.textContent = '❗ 처리 중 오류가 발생했습니다.';
+    } finally {
+      if (spinner) spinner.style.display = 'none';
+    }
+  });
+});
