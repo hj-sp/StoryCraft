@@ -1390,22 +1390,40 @@ window.isImageFile = function (file) {
 };
 
 window.extractTextFromAnyFile = async function (file) {
-    if (!file) throw new Error('파일이 없습니다.');
-    const fd = new FormData();
-    fd.append('file', file); 
-    const res = await fetch(`${BASE_URL}/fileScan`, {
-        method: 'POST',
-        body: fd,
-    });
-    if (!res.ok) {
-        const raw = await res.text().catch(() => '');
-        throw new Error(`fileScan HTTP ${res.status} - ${raw || ''}`);
-    }
-    const js = await res.json();
-    const text = (js.result ?? js.text ?? '').toString();
-    renderScanResult(text);
-    return text;
+  if (!file) throw new Error('파일이 없습니다.');
+  const fd = new FormData();
+  fd.append('file', file);
+
+  const res = await fetch(`${BASE_URL}/fileScan`, { method: 'POST', body: fd });
+  const raw = await res.text();                        // ← 항상 문자열로 먼저 받기
+  let js = {};
+  try { js = JSON.parse(raw); } catch {}
+
+  // ✅ 서버가 result/text 둘 중 하나로 줄 수도 있으니 합치기
+  const text = ((js.result ?? js.text) ?? '').toString();
+
+  // ✅ 콘솔 로그로 상태 확인
+  console.log('[scan] http=', res.status,
+              'filename=', js.filename,
+              'len=', (text||'').length,
+              'error=', js.error || null);
+
+  // ✅ 에러가 있으면 그대로 화면에 표시(지금까지는 숨겨져 있어서 원인 파악이 어려웠음)
+  if (js.error) {
+    renderScanResult(`[서버 오류]\n${js.error}\n\n(원문)\n${text || ''}`);
+    return text || '';
+  }
+
+  // ✅ 진짜 텍스트가 비면 원문(JSON) 일부라도 보여주자
+  if (!text) {
+    renderScanResult(`[추출 결과가 비었습니다]\nHTTP ${res.status}\n${raw.slice(0,500)}`);
+    return '';
+  }
+
+  renderScanResult(text);
+  return text;
 };
+
 
 // 업로더에서 파일 하나만 꺼내오기 (image.html/scan.html 겸용)
 function getSelectedFile() {

@@ -1636,26 +1636,25 @@ async def translate_text(request: Request):
 
 @app.post("/fileScan")
 async def file_scan(file: UploadFile = File(...)):
-    # 1) 업로드 바이트는 '한 번만' 읽기
     raw = await file.read()
     filename = file.filename or "upload"
-
     try:
-        # 2) 한 가지 디스패처로 통일 (바이트 기반)
-        merged = extract_all_text_and_images(raw, filename)
+        # 🔎 디버그
+        print("fileScan recv:", filename, "raw_len=", len(raw))
 
-        # 3) 빈 값/길이 제한 처리
-        merged = (merged or "").strip()
-        MAX = 100_000
-        if len(merged) > MAX:
-            merged = merged[:MAX] + "\n…(생략)"
+        merged = extract_all_text_and_images(raw, filename) or ""
+        merged = merged.strip()
 
-        # 4) 프런트가 기대하는 키 이름으로 응답 (result)
-        return {"filename": filename, "result": merged}
+        # 🔎 길이 로그
+        print("fileScan out_len:", len(merged))
 
+        # 호환을 위해 result/text 모두 제공
+        return {"filename": filename, "result": merged, "text": merged}
     except Exception as e:
-        print("⚠️ [fileScan fatal]", e)
-        return {"filename": filename, "result": "", "error": str(e)}
+        err = f"{type(e).__name__}: {e}"
+        print("⚠️ [fileScan fatal]", err)
+        return {"filename": filename, "result": "", "text": "", "error": err}
+
 
 
 @app.post("/pdfScan")
