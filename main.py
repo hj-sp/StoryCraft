@@ -446,8 +446,6 @@ load_dotenv()
 
 app = FastAPI()
 
-os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
-os.environ.pop("VISION_KEY_PATH", None)
 
 ALLOW_ORIGINS = [
     "http://127.0.0.1:5500",
