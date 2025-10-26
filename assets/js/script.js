@@ -1392,7 +1392,7 @@ window.isImageFile = function (file) {
 window.extractTextFromAnyFile = async function (file) {
     if (!file) throw new Error('파일이 없습니다.');
     const fd = new FormData();
-    fd.append('file', file); // 서버 /fileScan은 'file' 필드로 받음
+    fd.append('file', file); 
     const res = await fetch(`${BASE_URL}/fileScan`, {
         method: 'POST',
         body: fd,
@@ -1402,6 +1402,7 @@ window.extractTextFromAnyFile = async function (file) {
         throw new Error(`fileScan HTTP ${res.status} - ${raw || ''}`);
     }
     const js = await res.json();
+    renderScanResult(js.text);
     return (js.text || '').toString();
 };
 
@@ -7633,16 +7634,54 @@ function escapeHtml(s) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
+// 가독성 향상을 위한 간단한 줄바꿈/정리(힌트성 규칙)
+function beautifyText(raw) {
+  let s = (raw || '').toString();
+
+  // 공백 정리
+  s = s.replace(/\s+/g, ' ').trim();
+
+  // 자주 쓰는 구획 앞에 줄바꿈 넣기
+  const heads = [
+    '참여 경로', '결과 확인', '관련 문의', '※', '핵심역량', '전문지식탐구',
+    '창의적문제해결', '융복합', '다양성존중', '윤리실천'
+  ];
+  heads.forEach(h => {
+    const re = new RegExp(`\\s*(${h})`, 'g');
+    s = s.replace(re, '\n$1');
+  });
+
+  // 날짜(YYYY.M.D) 뒤 줄바꿈
+  s = s.replace(/(\d{4}\.\d{1,2}\.\d{1,2}\.?)/g, '$1\n');
+
+  // ' > ' 구분자 뒤에 줄바꿈
+  s = s.replace(/\s>\s/g, ' > ');     // 먼저 정규화
+  s = s.replace(/(> [^>]+)(?=\s>|\s*$)/g, '$1\n');
+
+  // 전화번호 앞 줄바꿈
+  s = s.replace(/(\(?0\d{1,2}\)\s*\d{3,4}-\d{4})/g, '\n$1');
+
+  // 여러 줄바꿈 정리
+  s = s.replace(/\n{3,}/g, '\n\n');
+
+  return s.trim();
+}
+
+// [본문 / 이미지 OCR] 분리 렌더
 function renderScanResult(mergedText) {
   const area = document.getElementById('resultArea');
   if (!area) return;
   area.innerHTML = '';
 
   const raw = (mergedText || '').toString();
-  // 개행 변형에도 안전하게 분리
-  const parts = raw.split(/\n*\[📷 이미지 OCR\]\n*/);
-  const bodyText = (parts[0] || '').trim();
-  const imgText  = (parts[1] || '').trim();
+
+  // 마커로 분리 (개행이 없을 수도 있으니 유연하게)
+  const markerRe = /\s*\[📷 이미지 OCR\]\s*/;
+  const hasMarker = markerRe.test(raw);
+  const [bodyRaw, ocrRaw = ''] = raw.split(markerRe);
+
+  const bodyText = beautifyText(bodyRaw);
+  const ocrText  = hasMarker ? beautifyText(ocrRaw) : '';
 
   const section = (kind, title, text) => `
     <section class="sc-block sc-${kind}">
@@ -7655,16 +7694,16 @@ function renderScanResult(mergedText) {
   `;
 
   if (bodyText) area.insertAdjacentHTML('beforeend', section('body', '본문 텍스트', bodyText));
-  if (imgText)  area.insertAdjacentHTML('beforeend', section('ocr',  '📷 이미지 OCR', imgText));
-  if (!bodyText && !imgText) area.textContent = '텍스트를 추출하지 못했습니다.';
+  if (ocrText)  area.insertAdjacentHTML('beforeend', section('ocr',  '📷 이미지 OCR', ocrText));
+  if (!bodyText && !ocrText) area.textContent = '텍스트를 추출하지 못했습니다.';
 
-  // 복사 버튼 이벤트
+  // 복사 버튼
   area.querySelectorAll('.sc-copy').forEach(btn => {
     btn.addEventListener('click', () => {
       const pre = btn.closest('section').querySelector('.sc-pre');
       navigator.clipboard.writeText(pre.textContent).then(() => {
         btn.textContent = '복사됨!';
-        setTimeout(()=> btn.textContent = '복사', 1200);
+        setTimeout(()=> btn.textContent = '복사', 1100);
       });
     });
   });

@@ -5271,10 +5271,11 @@ page-editor #resultArea:empty {
     padding-left: var(--chat-pad-x) !important;
 }
 
-.sc-block{border:1px solid var(--border-color, #e5e7eb);border-radius:14px;padding:14px 16px;margin:14px 0;background:var(--card-bg,#101214);}
-.sc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.sc-pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid transparent;opacity:.9}
+.sc-block{border:1px solid #2a2f3a;border-radius:14px;padding:14px 16px;margin:14px 0;background:#0f1218;}
+.sc-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.sc-pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid transparent;opacity:.95}
 .sc-body-pill{background:#1f6feb22;border-color:#1f6feb55;}
 .sc-ocr-pill{background:#22c55e22;border-color:#22c55e55;}
-.sc-pre{white-space:pre-wrap;word-break:break-word;margin:0;line-height:1.6;}
-.sc-copy{margin-left:auto;font-size:12px;background:transparent;border:1px solid #8883;border-radius:8px;padding:4px 8px;cursor:pointer}
+.sc-pre{white-space:pre-wrap;word-break:break-word;margin:0;line-height:1.65;}
+.sc-copy{margin-left:auto;font-size:12px;background:transparent;border:1px solid #8892a63b;border-radius:8px;padding:4px 8px;cursor:pointer}
+
