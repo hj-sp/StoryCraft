@@ -231,62 +231,80 @@ def extract_from_pdf(raw: bytes) -> Tuple[str, List[str]]:
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
+    import zipfile, io
     text_parts, ocr_parts = [], []
-    d = Document(io.BytesIO(raw))
-    # 본문 텍스트
-    for p in d.paragraphs:
-        text_parts.append(p.text)
-    # 내장 이미지 (related_parts)
+    # 1) 본문 텍스트
     try:
-        rel_parts = getattr(d.part, "related_parts", {})
-        for _, part in rel_parts.items():
-            if getattr(part, "content_type", "").startswith("image/"):
-                blob = getattr(part, "blob", b"")
-                if blob:
-                    ocr_parts.append(ocr_image_bytes(blob))
+        d = Document(io.BytesIO(raw))
+        for p in d.paragraphs:
+            text_parts.append(p.text or "")
     except Exception as e:
-        print("docx image extract err:", e)
+        print("docx text parse err:", e)
+    # 2) 내장 이미지 (ZIP 스캔)
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            for name in zf.namelist():
+                low = name.lower()
+                if low.startswith("word/media/") and low.split(".")[-1] in (
+                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                ):
+                    ocr_parts.append(ocr_image_bytes(zf.read(name)))
+    except Exception as e:
+        print("docx media zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_pptx(raw: bytes) -> Tuple[str, List[str]]:
+    import zipfile, io
     text_parts, ocr_parts = [], []
-    prs = Presentation(io.BytesIO(raw))
-    for slide in prs.slides:
-        for shape in slide.shapes:
-            # 텍스트
-            try:
-                if hasattr(shape, "has_text_frame") and shape.has_text_frame:
-                    text_parts.append(shape.text)
-            except:
-                pass
-            # 이미지
-            try:
-                if hasattr(shape, "image") and hasattr(shape.image, "blob"):
-                    ocr_parts.append(ocr_image_bytes(shape.image.blob))
-            except Exception as e:
-                print("pptx image extract err:", e)
+    # 1) 본문 텍스트
+    try:
+        prs = Presentation(io.BytesIO(raw))
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if getattr(shape, "has_text_frame", False):
+                    text_parts.append(shape.text or "")
+    except Exception as e:
+        print("pptx text parse err:", e)
+    # 2) 내장 이미지 (ZIP 스캔)
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            for name in zf.namelist():
+                low = name.lower()
+                if low.startswith("ppt/media/") and low.split(".")[-1] in (
+                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                ):
+                    ocr_parts.append(ocr_image_bytes(zf.read(name)))
+    except Exception as e:
+        print("pptx media zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_xlsx(raw: bytes) -> Tuple[str, List[str]]:
+    import zipfile, io
     text_parts, ocr_parts = [], []
-    wb = load_workbook(io.BytesIO(raw), data_only=True)
-    for ws in wb.worksheets:
-        # 셀 텍스트
-        for row in ws.iter_rows(values_only=True):
-            vals = [str(c) for c in row if c is not None]
-            if vals:
-                text_parts.append("\t".join(vals))
-        # 내장 이미지 (버전에 따라 속성이 다를 수 있어 보호적 접근)
-        try:
-            for img in getattr(ws, "_images", []):
-                if hasattr(img, "_data") and callable(img._data):
-                    ocr_parts.append(ocr_image_bytes(img._data()))
-                elif hasattr(img, "_ref") and hasattr(img._ref, "path"):
-                    with open(img._ref.path, "rb") as f:
-                        ocr_parts.append(ocr_image_bytes(f.read()))
-        except Exception as e:
-            print("xlsx image extract err:", e)
+    # 1) 셀 텍스트
+    try:
+        wb = load_workbook(io.BytesIO(raw), data_only=True)
+        for ws in wb.worksheets:
+            for row in ws.iter_rows(values_only=True):
+                vals = [str(c) for c in row if c is not None]
+                if vals:
+                    text_parts.append("\t".join(vals))
+    except Exception as e:
+        print("xlsx text parse err:", e)
+    # 2) 내장 이미지 (ZIP 스캔)
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            for name in zf.namelist():
+                low = name.lower()
+                if low.startswith("xl/media/") and low.split(".")[-1] in (
+                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                ):
+                    ocr_parts.append(ocr_image_bytes(zf.read(name)))
+    except Exception as e:
+        print("xlsx media zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
+
+
 
 def try_guess_image_from_bin(bin_bytes: bytes) -> bytes:
     """HWP OLE BinData 스트림에서 PNG/JPEG 시그니처를 찾아 잘라내기"""
@@ -349,25 +367,21 @@ def extract_text_from_hwp_hwp5txt(raw: bytes) -> str:
         except: pass
 
 def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
-    """
-    HWPX: zip 구조. 이미지 파일들 → OCR, 텍스트(XML 파싱은 생략/선택)
-    """
+    import zipfile, io
     text_parts, ocr_parts = [], []
-    with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-        # 이미지
-        for name in zf.namelist():
-            low = name.lower()
-            if low.endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp")):
-                try:
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            for name in zf.namelist():
+                low = name.lower()
+                # HWPX는 주로 Contents/Resources/… 경로에 이미지가 있음
+                if ("/resources/" in low or low.startswith("contents/")) and low.split(".")[-1] in (
+                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                ):
                     ocr_parts.append(ocr_image_bytes(zf.read(name)))
-                except Exception as e:
-                    print("hwpx image read err:", e)
-        # (원하면) XML 텍스트 파싱 추가 가능
-        # for name in zf.namelist():
-        #     if name.endswith(".xml"):
-        #         text_parts.append(detect_text_encoding_and_decode(zf.read(name)))
+            # (원하면 여기서 XML 텍스트도 추가 파싱)
+    except Exception as e:
+        print("hwpx zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
-
 # ---------------------------
 # 메인 디스패처
 # ---------------------------
@@ -387,7 +401,7 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
             body, ocr_list = extract_from_pdf(binary)
 
         elif ext == "docx":
-            body, ocr_list = extract_from_docx(binary)
+            body, ocr_list = extract_from_docx(binary) 
 
         elif ext in ["pptx", "ppt"]:
             body, ocr_list = extract_from_pptx(binary)
