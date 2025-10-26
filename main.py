@@ -31,17 +31,15 @@ from io import BytesIO
 import imageio_ffmpeg
 from hanspell import spell_checker
 from typing import Optional, Tuple, List
-from PIL import Image
+
 
 # PDF/오피스 파서
-import fitz, base64                     
+import fitz                     
 from docx import Document       
 from pptx import Presentation   
 from openpyxl import load_workbook
 import olefile                  
-import chardet      
-from docx import Document
-from pptx import Presentation
+import chardet                  
 
 
 try:
@@ -186,39 +184,10 @@ def _crop_to_last_boundary(s: str) -> str:
 
 # 문서 이미지 텍스트 추출 관련
 
-def sniff_raster_image(data: bytes) -> bytes:
-    """확장자 없이 들어와도 PNG/JPEG/GIF/BMP/TIFF/WEBP면 그대로 반환, 아니면 b''."""
-    if not data:
-        return b""
-    head = data[:16]
-    # PNG
-    if head.startswith(b"\x89PNG\r\n\x1a\n"): return data
-    # JPEG
-    if head.startswith(b"\xff\xd8\xff"): return data
-    # GIF
-    if head.startswith(b"GIF8"): return data
-    # BMP
-    if head.startswith(b"BM"): return data
-    # TIFF (II*/MM*)
-    if head.startswith(b"II*\x00") or head.startswith(b"MM\x00*"): return data
-    # WEBP: RIFF....WEBP
-    if head.startswith(b"RIFF") and b"WEBP" in data[:32]: return data
-    return b""
-
-
-def should_ocr(img_bytes: bytes, min_wh: int = 28) -> bool:
-    try:
-        from PIL import Image
-        im = Image.open(io.BytesIO(img_bytes))
-        w, h = im.size
-        return (w >= min_wh and h >= min_wh)
-    except Exception:
-        return False
-    
 def ocr_image_bytes(img_bytes: bytes) -> str:
     if not img_bytes:
         return ""
- 
+    # ✅ 가드 추가: 초기화 실패시 바로 빈 문자열, 로그 남김
     if vision_client is None:
         print("[OCR] vision_client is None (check GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS)")
         return ""
@@ -235,41 +204,6 @@ def ocr_image_bytes(img_bytes: bytes) -> str:
         print("⚠️ OCR 실패:", e)
         return ""
 
-def extract_pdf_in_reading_order(pdf_path: str) -> str:
-    """텍스트/이미지 블록을 페이지 순서 및 좌표 순으로 섞어 출력"""
-    doc = fitz.open(pdf_path)
-    parts = []
-    for pno in range(len(doc)):
-        page = doc[pno]
-        # PyMuPDF dict: blocks = [{ "type":0|1, "bbox":[x0,y0,x1,y1], ... }]
-        blocks = page.get_text("dict").get("blocks", [])
-        # (type, y0, x0) 기준으로 안정 정렬
-        blocks.sort(key=lambda b: (round(b["bbox"][1], 1), round(b["bbox"][0], 1)))
-        parts.append(f"\n--- [p.{pno+1}] ---")
-        for b in blocks:
-            btype = b.get("type", 0)
-            x0, y0, x1, y1 = b["bbox"]
-            if btype == 0:  # text
-                # 블록 내 라인/스팬 결합
-                lines = []
-                for l in b.get("lines", []):
-                    line_text = "".join([s.get("text","") for s in l.get("spans",[])])
-                    lines.append(line_text)
-                text = "\n".join([t.strip() for t in lines if t and t.strip()])
-                if text:
-                    parts.append(text)
-            elif btype == 1:  # image
-                # 해당 bbox 영역만 렌더링해서 OCR
-                rect = fitz.Rect(x0, y0, x1, y1)
-                pix = page.get_pixmap(clip=rect, dpi=200)  # dpi 조절 가능(품질/속도 트레이드오프)
-                img_bytes = pix.tobytes("png")
-                try:
-                    ocr = ocr_image_bytes(img_bytes).strip()
-                except Exception:
-                    ocr = ""
-                if ocr:
-                    parts.append("[📷 이미지 OCR]\n" + ocr)
-    return "\n".join(parts).strip()
 # ---------------------------
 # 포맷별 추출기 (본문 + 내장 이미지)
 # 각 함수는 (본문텍스트, 이미지OCR리스트) 튜플 반환
@@ -285,19 +219,19 @@ def extract_from_pdf(raw: bytes) -> Tuple[str, List[str]]:
     text_parts, ocr_parts = [], []
     doc = fitz.open(stream=raw, filetype="pdf")
     for page in doc:
+        # 본문 텍스트
         text_parts.append(page.get_text())
+        # 페이지 내 이미지 → OCR
         for img in page.get_images(full=True):
             xref = img[0]
             try:
                 meta = doc.extract_image(xref)
                 img_bytes = meta.get("image", b"")
-                if img_bytes and should_ocr(img_bytes):
-                    txt = ocr_image_bytes(img_bytes).strip()
-                    if txt:
-                        ocr_parts.append(txt)
+                if img_bytes:
+                    ocr_parts.append(ocr_image_bytes(img_bytes))
             except Exception as e:
                 print("pdf image extract err:", e)
-    return "\n".join(text_parts).strip(), ocr_parts
+    return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
     import zipfile, io
@@ -438,97 +372,47 @@ def extract_text_from_hwp_hwp5txt(raw: bytes) -> str:
         try: os.remove(path)
         except: pass
 
-# --- HWPX: 본문 텍스트 + 이미지 OCR 통합 추출 (교체용) ---
 def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
-    import zipfile, io, re, xml.etree.ElementTree as ET
+    import zipfile, io
     text_parts, ocr_parts = [], []
-
-    def add_text(s: str):
-        s = (s or "").strip()
-        if s: text_parts.append(s)
-
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-            names = zf.namelist()
-
-            # 1) 이미지 OCR (Contents/Resources 또는 Contents 아래 이미지)
-            for name in names:
+            for name in zf.namelist():
                 low = name.lower()
-                if (("/resources/" in low or low.startswith("contents/"))
-                    and low.rsplit(".", 1)[-1] in ("png","jpg","jpeg","bmp","gif","tif","tiff","webp")):
-                    try:
-                        img_bytes = zf.read(name)
-                        txt = ocr_image_bytes(img_bytes).strip()
-                        if txt: ocr_parts.append(txt)
-                    except Exception as e:
-                        print("hwpx image ocr err:", name, e)
-
-            # 2) 본문 텍스트 (Contents/*.xml 전부 긁기)
-            xml_names = [n for n in names if n.lower().startswith("contents/") and n.lower().endswith(".xml")]
-            if not xml_names:
-                # 일부 문서는 루트에 xml이 있음
-                xml_names = [n for n in names if n.lower().endswith(".xml")]
-
-            for name in xml_names:
-                try:
-                    xml_bytes = zf.read(name)
-                    try:
-                        root = ET.fromstring(xml_bytes)
-                    except Exception:
-                        # 파서 실패 시 태그 제거 러프 추출(최후수단)
-                        text = re.sub(r"<[^>]+>", " ", xml_bytes.decode("utf-8", errors="ignore"))
-                        add_text(re.sub(r"\s+", " ", text))
-                        continue
-
-                    # 문단 보강
-                    for p in root.findall(".//{*}p"):
-                        buf = []
-                        for t in p.findall(".//{*}t"):
-                            if t.text: buf.append(t.text.strip())
-                        line = " ".join(buf).strip()
-                        if line: add_text(line)
-
-                except Exception as e:
-                    print("hwpx xml parse err:", name, e)
-
+                # HWPX는 주로 Contents/Resources/… 경로에 이미지가 있음
+                if ("/resources/" in low or low.startswith("contents/")) and low.split(".")[-1] in (
+                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                ):
+                    ocr_parts.append(ocr_image_bytes(zf.read(name)))
+            # (원하면 여기서 XML 텍스트도 추가 파싱)
     except Exception as e:
         print("hwpx zip scan err:", e)
-
-    body = "\n".join(text_parts).strip()
-    return body, [t for t in ocr_parts if t]
-
-
-
-def detect_text_encoding_and_decode(b: bytes) -> str:
-    for enc in ("utf-8", "cp949", "euc-kr", "latin1"):
-        try:
-            return b.decode(enc)
-        except Exception:
-            pass
-    return ""
-
+    return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 # ---------------------------
 # 메인 디스패처
 # ---------------------------
 def extract_all_text_and_images(binary: bytes, filename: str) -> str:
+    """
+    파일 확장자에 따라 본문 텍스트 + 내장 이미지 OCR을 합쳐 하나의 문자열로 반환.
+    프론트 수정 없이 `text` 하나로 내려주기 위함.
+    """
     ext = (filename or "").lower().split(".")[-1]
     body, ocr_list = "", []
 
     try:
-        if ext in ["png","jpg","jpeg","bmp","gif","tif","tiff","webp"]:
+        if ext in ["png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"]:
             body, ocr_list = extract_from_image(binary)
 
         elif ext == "pdf":
-            body = extract_pdf_in_reading_order_bytes(binary)  # 순서 보존
-            ocr_list = []
+            body, ocr_list = extract_from_pdf(binary)
 
         elif ext == "docx":
-            body, ocr_list = extract_from_docx(binary)
+            body, ocr_list = extract_from_docx(binary) 
 
-        elif ext == "pptx":
+        elif ext in ["pptx", "ppt"]:
             body, ocr_list = extract_from_pptx(binary)
 
-        elif ext == "xlsx":
+        elif ext in ["xlsx", "xls"]:
             body, ocr_list = extract_from_xlsx(binary)
 
         elif ext == "txt":
@@ -536,26 +420,22 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
 
         elif ext == "hwpx":
             body, ocr_list = extract_from_hwpx_zip(binary)
-            if not (body and body.strip()):
-                try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".hwpx") as f:
-                        f.write(binary)
-                        f.flush()
-                        pdf_path = libreoffice_to_pdf(f.name)
-                    body = extract_pdf_text(pdf_path)
-                except Exception as e:
-                    print("hwpx fallback failed:", e)
 
         elif ext == "hwp":
-            body = extract_text_from_hwp_hwp5txt(binary)  # 없으면 빈문자열
+            # 1) (가능하면) hwp5txt 로 본문 추출
+            body = extract_text_from_hwp_hwp5txt(binary)
+            # 2) BinData 이미지 OCR 도 병행
             _, ocr_list = extract_from_hwp_images_only(binary)
 
         else:
+            # 모르는 포맷: 일단 텍스트처럼 디코드 시도
             body = detect_text_encoding_and_decode(binary)
 
     except Exception as e:
+        # 개별 파서 실패 시에도 가능한 정보 반환
         print("parse error:", type(e).__name__, e)
 
+    # 최종 합치기 (프론트 변경 없이 text 하나로 반환)
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
@@ -566,273 +446,6 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
     else:
         return body
 
-    
-def extract_office_like_bytes(binary: bytes, filename: str) -> str:
-    ext = os.path.splitext(filename)[1].lower()
-    body_parts = []
-    ocr_parts = []
-
-    if ext == ".docx":
-        # python-docx
-        from docx import Document
-        buf = io.BytesIO(binary)
-        doc = Document(buf)
-        body_parts.append("\n".join([p.text for p in doc.paragraphs if p.text.strip()]))
-        # 이미지: zip 열어 media/* 추출 → ocr_image_bytes
-        ocr_parts += ocr_images_from_zip(buf, "word/media/")
-
-    elif ext == ".pptx":
-        # python-pptx
-        from pptx import Presentation
-        buf = io.BytesIO(binary)
-        pres = Presentation(buf)
-        for slide in pres.slides:
-            for shape in slide.shapes:
-                if hasattr(shape, "text") and shape.text:
-                    body_parts.append(shape.text)
-        ocr_parts += ocr_images_from_zip(buf, "ppt/media/")
-
-    elif ext == ".xlsx":
-        # openpyxl
-        import openpyxl, tempfile
-        buf = io.BytesIO(binary)
-        wb = openpyxl.load_workbook(buf, data_only=True)
-        for ws in wb.worksheets:
-            rows = []
-            for row in ws.iter_rows(values_only=True):
-                vals = [str(v) for v in row if v not in (None, "")]
-                if vals: rows.append("\t".join(vals))
-            if rows:
-                body_parts.append(f"[{ws.title}]\n" + "\n".join(rows))
-        ocr_parts += ocr_images_from_zip(buf, "xl/media/")
-
-    elif ext == ".hwpx":
-        # zip(xml) + 이미지
-        buf = io.BytesIO(binary)
-        ocr_parts += ocr_images_from_zip(buf, "Contents/Resources/")
-
-        # 본문(xml 파싱은 선택. 이미 구현돼 있으면 그 로직 호출)
-
-    elif ext == ".hwp":
-        # olefile 로 BinData 이미지 OCR
-        import olefile
-        f = io.BytesIO(binary)
-        ole = olefile.OleFileIO(f)
-        for s in ole.listdir():
-            if s[0] == 'BinData' and s[-1].lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
-                data = ole.openstream(s).read()
-                txt = ocr_image_bytes(data).strip()
-                if txt: ocr_parts.append(txt)
-        # 본문 텍스트는 hwp5txt가 없으면 생략/기존 로직
-
-    merged = "\n".join([t for t in ["\n".join(body_parts)] if t.strip()])
-    if ocr_parts:
-        if merged: merged += "\n\n[📷 이미지 OCR]\n" + "\n\n".join(ocr_parts)
-        else:      merged  = "[📷 이미지 OCR]\n" + "\n\n".join(ocr_parts)
-    return merged
-
-def ocr_images_from_zip(buf: io.BytesIO, prefix: str) -> list[str]:
-    import zipfile
-    texts = []
-    buf.seek(0)
-    prefix_low = prefix.lower() 
-    with zipfile.ZipFile(buf) as z:
-        for name in z.namelist():
-            low = name.lower()
-            if low.startswith(prefix_low) and low.endswith((
-                '.png','.jpg','.jpeg','.bmp','.gif','.webp','.tif','.tiff'
-            )):
-                img_bytes = z.read(name)
-                if img_bytes and should_ocr(img_bytes):
-                    t = ocr_image_bytes(img_bytes).strip()
-                    if t: texts.append(t)
-    return texts
-
-
-def extract_pdf_in_reading_order_bytes(raw: bytes) -> str:
-    try:
-        doc = fitz.open(stream=raw, filetype="pdf")
-    except Exception as e:
-        print("fitz open(pdf bytes) err:", e)
-        return ""
-    parts = []
-    for i in range(len(doc)):
-        page = doc[i]
-        blocks = page.get_text("dict").get("blocks", [])
-        blocks.sort(key=lambda b: (round(b["bbox"][1],1), round(b["bbox"][0],1)))
-        parts.append(f"\n--- [p.{i+1}] ---")
-        for b in blocks:
-            t = b.get("type", 0)
-            x0,y0,x1,y1 = b["bbox"]
-            if t == 0:
-                lines = []
-                for l in b.get("lines", []):
-                    lines.append("".join(s.get("text","") for s in l.get("spans",[])))
-                txt = "\n".join(t.strip() for t in lines if t and t.strip())
-                if txt: parts.append(txt)
-            elif t == 1:
-                rect = fitz.Rect(x0,y0,x1,y1)
-                pix = page.get_pixmap(clip=rect, dpi=200)
-                ocr = ocr_image_bytes(pix.tobytes("png")).strip()
-                if ocr:
-                    parts.append("[📷 이미지 OCR]\n"+ocr)
-    return "\n".join(parts).strip()
-
-def extract_pdf_text(pdf_path: str) -> str:
-    """
-    PyPDF2로 PDF의 전체 텍스트를 추출하고, 온점 앞 공백 제거 등 간단 후처리.
-    """
-    try:
-        reader = PdfReader(pdf_path)
-        extracted_text = ""
-        for page in reader.pages:
-            extracted_text += page.extract_text() or ""
-        # 온점 앞의 띄어쓰기 제거
-        cleaned_text = re.sub(r" (?=\.)", "", extracted_text)
-        return cleaned_text.strip()
-    except Exception as e:
-        raise RuntimeError(f"PDF 처리 중 오류: {e}")
-
-
-def libreoffice_to_pdf(input_path: str) -> str:
-    """
-    LibreOffice(headless)로 거의 모든 오피스/HWP 포맷을 PDF로 변환.
-    예: soffice --headless --convert-to pdf --outdir /tmp input.hwp
-    """
-    outdir = tempfile.gettempdir()
-
-    cmd = ["soffice", "--headless", "--convert-to",
-           "pdf", "--outdir", outdir, input_path]
-    try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE)
-        stem = pathlib.Path(input_path).stem
-        out_pdf = os.path.join(outdir, f"{stem}.pdf")
-        if not os.path.exists(out_pdf):
-            raise RuntimeError("LibreOffice 변환 결과 PDF를 찾을 수 없습니다.")
-        return out_pdf
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            f"LibreOffice 변환 실패: {e.stderr.decode('utf-8', errors='ignore')}")
-
-def extract_hwpx_text(local_path: str) -> str:
-    """
-    HWPX는 OOXML 유사 구조의 '압축(zip)+XML' 포맷.
-    Contents/*.xml 에서 모든 텍스트 노드({*}t)를 긁어와 문단 단위로 합칩니다.
-    """
-    texts = []
-    with zipfile.ZipFile(local_path, "r") as zf:
-
-        xml_names = [n for n in zf.namelist()
-                     if n.lower().startswith("contents/") and n.lower().endswith(".xml")]
-        if not xml_names:
-
-            xml_names = [n for n in zf.namelist(
-            ) if n.lower().endswith(".xml")]
-
-        for name in sorted(xml_names):
-            with zf.open(name) as fp:
-                data = fp.read()
-            try:
-                root = ET.fromstring(data)
-            except ET.ParseError:
-                continue
-
-            for node in root.findall(".//{*}t"):
-                if node.text and node.text.strip():
-                    texts.append(node.text)
-
-    text = "\n".join(texts)
-    text = re.sub(r"[ \t]+\n", "\n", text)         #
-    text = re.sub(r"\s{2,}", " ", text)            #
-    text = re.sub(r"\s+(?=[\.\,\!\?\:\;])", "", text)
-    return text.strip()
-
-def extract_text_by_ext(local_path: str, filename: str) -> str:
-    """
-    파일 확장자/포맷에 따라 텍스트를 추출.
-    - 직접 추출 가능한 포맷: pdf, docx, pptx, xlsx, txt
-    - 그 외(ppt, xls, hwp, hwpx, doc, rtf 등)는 LibreOffice로 pdf 변환 후 PDF 추출 재사용
-    """
-    ext = pathlib.Path(filename).suffix.lower()
-    text = ""
-
-    if ext == ".pdf":
-        text = extract_pdf_text(local_path)
-
-    elif ext == ".docx":
-        # mammoth: docx -> plain text
-        try:
-            import mammoth
-            with open(local_path, "rb") as f:
-                result = mammoth.extract_raw_text(f)
-            text = (result.value or "").strip()
-        except Exception as e:
-            raise RuntimeError(f"DOCX 처리 오류: {e}")
-
-    elif ext == ".pptx":
-        # python-pptx: 모든 슬라이드에서 shape.text 모으기
-        try:
-            from pptx import Presentation
-            prs = Presentation(local_path)
-            chunks = []
-            for slide in prs.slides:
-                for shp in slide.shapes:
-                    if hasattr(shp, "text") and shp.text:
-                        chunks.append(shp.text)
-                # 노트 영역까지 필요하면 아래 활성화
-                if getattr(slide, "notes_slide", None) and slide.notes_slide.notes_text_frame:
-                    chunks.append(slide.notes_slide.notes_text_frame.text)
-            text = "\n".join(chunks).strip()
-        except Exception as e:
-            raise RuntimeError(f"PPTX 처리 오류: {e}")
-
-    elif ext == ".xlsx":
-        # openpyxl: 셀 텍스트를 시트별로 모으기
-        try:
-            import openpyxl
-            wb = openpyxl.load_workbook(
-                local_path, data_only=True, read_only=True)
-            rows = []
-            for ws in wb.worksheets:
-                rows.append(f"### 시트: {ws.title}")
-                for row in ws.iter_rows(values_only=True):
-                    cells = [str(c) if c is not None else "" for c in row]
-                    # 너무 긴 엑셀이면 여기서 줄수/열수 제한 가능
-                    rows.append("\t".join(cells))
-            text = "\n".join(rows).strip()
-        except Exception as e:
-            raise RuntimeError(f"XLSX 처리 오류: {e}")
-
-    elif ext == ".txt":
-        # 단순 텍스트
-        try:
-            with open(local_path, "rb") as f:
-                raw = f.read()
-            text = raw.decode("utf-8", errors="ignore").strip()
-        except Exception as e:
-            raise RuntimeError(f"TXT 처리 오류: {e}")
-
-    elif ext == ".hwpx":
-        # ✅ LibreOffice 없이 바로 파싱
-        with open(local_path, "rb") as f:
-            raw_bytes = f.read()
-        text, ocrs = extract_from_hwpx_zip(raw_bytes)
-
-    elif ext in ("ppt", "xls", "hwp", "doc", "rtf"):
-        # 이들은 계속 LibreOffice 변환을 사용
-        pdf_path = libreoffice_to_pdf(local_path)
-        text = extract_pdf_text(pdf_path)
-
-    else:
-
-        try:
-            pdf_path = libreoffice_to_pdf(local_path)
-            text = extract_pdf_text(pdf_path)
-        except Exception as e:
-            raise RuntimeError(f"LibreOffice 변환/추출 실패: {e}")
-
-    return text
 
 
 load_dotenv()
@@ -1625,30 +1238,189 @@ async def translate_text(request: Request):
     except Exception as e:
         return {"error": f"Google 번역 API 호출 오류: {str(e)}"}
 
+def extract_pdf_text(pdf_path: str) -> str:
+    """
+    PyPDF2로 PDF의 전체 텍스트를 추출하고, 온점 앞 공백 제거 등 간단 후처리.
+    """
+    try:
+        reader = PdfReader(pdf_path)
+        extracted_text = ""
+        for page in reader.pages:
+            extracted_text += page.extract_text() or ""
+        # 온점 앞의 띄어쓰기 제거
+        cleaned_text = re.sub(r" (?=\.)", "", extracted_text)
+        return cleaned_text.strip()
+    except Exception as e:
+        raise RuntimeError(f"PDF 처리 중 오류: {e}")
+
+
+def libreoffice_to_pdf(input_path: str) -> str:
+    """
+    LibreOffice(headless)로 거의 모든 오피스/HWP 포맷을 PDF로 변환.
+    예: soffice --headless --convert-to pdf --outdir /tmp input.hwp
+    """
+    outdir = tempfile.gettempdir()
+
+    cmd = ["soffice", "--headless", "--convert-to",
+           "pdf", "--outdir", outdir, input_path]
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
+        stem = pathlib.Path(input_path).stem
+        out_pdf = os.path.join(outdir, f"{stem}.pdf")
+        if not os.path.exists(out_pdf):
+            raise RuntimeError("LibreOffice 변환 결과 PDF를 찾을 수 없습니다.")
+        return out_pdf
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"LibreOffice 변환 실패: {e.stderr.decode('utf-8', errors='ignore')}")
+
+def extract_hwpx_text(local_path: str) -> str:
+    """
+    HWPX는 OOXML 유사 구조의 '압축(zip)+XML' 포맷.
+    Contents/*.xml 에서 모든 텍스트 노드({*}t)를 긁어와 문단 단위로 합칩니다.
+    """
+    texts = []
+    with zipfile.ZipFile(local_path, "r") as zf:
+
+        xml_names = [n for n in zf.namelist()
+                     if n.lower().startswith("contents/") and n.lower().endswith(".xml")]
+        if not xml_names:
+
+            xml_names = [n for n in zf.namelist(
+            ) if n.lower().endswith(".xml")]
+
+        for name in sorted(xml_names):
+            with zf.open(name) as fp:
+                data = fp.read()
+            try:
+                root = ET.fromstring(data)
+            except ET.ParseError:
+                continue
+
+            for node in root.findall(".//{*}t"):
+                if node.text and node.text.strip():
+                    texts.append(node.text)
+
+    text = "\n".join(texts)
+    text = re.sub(r"[ \t]+\n", "\n", text)         #
+    text = re.sub(r"\s{2,}", " ", text)            #
+    text = re.sub(r"\s+(?=[\.\,\!\?\:\;])", "", text)
+    return text.strip()
+
+def extract_text_by_ext(local_path: str, filename: str) -> str:
+    """
+    파일 확장자/포맷에 따라 텍스트를 추출.
+    - 직접 추출 가능한 포맷: pdf, docx, pptx, xlsx, txt
+    - 그 외(ppt, xls, hwp, hwpx, doc, rtf 등)는 LibreOffice로 pdf 변환 후 PDF 추출 재사용
+    """
+    ext = pathlib.Path(filename).suffix.lower().lstrip(".")
+    text = ""
+
+    if ext == "pdf":
+        text = extract_pdf_text(local_path)
+
+    elif ext == "docx":
+        # mammoth: docx -> plain text
+        try:
+            import mammoth
+            with open(local_path, "rb") as f:
+                result = mammoth.extract_raw_text(f)
+            text = (result.value or "").strip()
+        except Exception as e:
+            raise RuntimeError(f"DOCX 처리 오류: {e}")
+
+    elif ext == "pptx":
+        # python-pptx: 모든 슬라이드에서 shape.text 모으기
+        try:
+            from pptx import Presentation
+            prs = Presentation(local_path)
+            chunks = []
+            for slide in prs.slides:
+                for shp in slide.shapes:
+                    if hasattr(shp, "text") and shp.text:
+                        chunks.append(shp.text)
+                # 노트 영역까지 필요하면 아래 활성화
+                if getattr(slide, "notes_slide", None) and slide.notes_slide.notes_text_frame:
+                    chunks.append(slide.notes_slide.notes_text_frame.text)
+            text = "\n".join(chunks).strip()
+        except Exception as e:
+            raise RuntimeError(f"PPTX 처리 오류: {e}")
+
+    elif ext == "xlsx":
+        # openpyxl: 셀 텍스트를 시트별로 모으기
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(
+                local_path, data_only=True, read_only=True)
+            rows = []
+            for ws in wb.worksheets:
+                rows.append(f"### 시트: {ws.title}")
+                for row in ws.iter_rows(values_only=True):
+                    cells = [str(c) if c is not None else "" for c in row]
+                    # 너무 긴 엑셀이면 여기서 줄수/열수 제한 가능
+                    rows.append("\t".join(cells))
+            text = "\n".join(rows).strip()
+        except Exception as e:
+            raise RuntimeError(f"XLSX 처리 오류: {e}")
+
+    elif ext == "txt":
+        # 단순 텍스트
+        try:
+            with open(local_path, "rb") as f:
+                raw = f.read()
+            text = raw.decode("utf-8", errors="ignore").strip()
+        except Exception as e:
+            raise RuntimeError(f"TXT 처리 오류: {e}")
+
+    elif ext == "hwpx":
+        # ✅ LibreOffice 없이 바로 파싱
+        text = extract_hwpx_text(local_path)
+
+    elif ext in ("ppt", "xls", "hwp", "doc", "rtf"):
+        # 이들은 계속 LibreOffice 변환을 사용
+        pdf_path = libreoffice_to_pdf(local_path)
+        text = extract_pdf_text(pdf_path)
+
+    else:
+
+        try:
+            pdf_path = libreoffice_to_pdf(local_path)
+            text = extract_pdf_text(pdf_path)
+        except Exception as e:
+            raise RuntimeError(f"LibreOffice 변환/추출 실패: {e}")
+
+    return text
 
 @app.post("/fileScan")
 async def file_scan(file: UploadFile = File(...)):
-    # 1) 업로드 바이트는 '한 번만' 읽기
-    raw = await file.read()
-    filename = file.filename or "upload"
+    """
+    하나의 업로드 엔드포인트로:
+    - 모든 문서 포맷의 본문 텍스트 추출
+    - 문서 내 '삽입 이미지'들 OCR 결과까지 병합
+    반환: {"filename", "text"}  (프론트 수정 불필요)
+    """
+    suffix = pathlib.Path(file.filename).suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        binary = await file.read()
+        tmp.write(binary)
+        tmp_path = tmp.name
 
     try:
-        # 2) 한 가지 디스패처로 통일 (바이트 기반)
-        merged = extract_all_text_and_images(raw, filename)
+        merged = extract_all_text_and_images(binary, file.filename)
 
-        # 3) 빈 값/길이 제한 처리
-        merged = (merged or "").strip()
-        MAX = 100_000
-        if len(merged) > MAX:
-            merged = merged[:MAX] + "\n…(생략)"
+        MAX_CHARS = 100_000
+        if len(merged) > MAX_CHARS:
+            merged = merged[:MAX_CHARS]
 
-        # 4) 프런트가 기대하는 키 이름으로 응답 (result)
-        return {"filename": filename, "result": merged}
-
+        return {"filename": file.filename, "text": merged}
     except Exception as e:
-        print("⚠️ [fileScan fatal]", e)
-        return {"filename": filename, "result": "", "error": str(e)}
-
+        return JSONResponse(status_code=400, content={"error": str(e)})
+    finally:
+        try:
+            os.remove(tmp_path)
+        except:
+            pass
 
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):
@@ -1817,6 +1589,3 @@ async def expand(request: Request):
         message) >= 2 and message[0] == message[-1] and message[0] in ('"', "'") else message
     print(message)
     return {"result": message}
-
-
-

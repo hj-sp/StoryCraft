@@ -465,53 +465,5 @@
         <script src="assets/js/script.js" defer></script>
         <script src="https://unpkg.com/diff-match-patch"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
-        <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const inp = document.getElementById('fileAny');
-  const resultArea = document.getElementById('resultArea');
-  const spinner = document.getElementById('loadingSpinner');
-
-  async function uploadToFileScan(file) {
-    if (!file) return;
-    try {
-      spinner.style.display = 'block';
-      resultArea.textContent = '';
-
-      const fd = new FormData();
-      fd.append('file', file);              // ✅ 키 이름은 반드시 'file'
-
-      const res = await fetch(`${BASE_URL}/fileScan`, {
-        method: 'POST',
-        body: fd
-      });
-
-      if (!res.ok) {
-        resultArea.textContent = `업로드 실패: ${res.status}`;
-        return;
-      }
-      const data = await res.json().catch(() => ({}));
-
-      // ✅ 서버 응답 키: result (통일 완료)
-      const text = (data && (data.result ?? data.text ?? '')) || '';
-      resultArea.textContent = text || '(추출된 텍스트 없음)';
-      // 필요하면 HTML 표시:
-      // resultArea.innerText = text;
-
-      // 진단 로그 (일시)
-      console.log('[scan] filename:', data?.filename, 'len:', (text||'').length);
-    } catch (e) {
-      console.error('[scan] /fileScan error:', e);
-      resultArea.textContent = `에러: ${e}`;
-    } finally {
-      spinner.style.display = 'none';
-    }
-  }
-
-  inp?.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    uploadToFileScan(file);
-  });
-});
-</script>
     </body>
 </html>
