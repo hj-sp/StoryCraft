@@ -1402,8 +1402,9 @@ window.extractTextFromAnyFile = async function (file) {
         throw new Error(`fileScan HTTP ${res.status} - ${raw || ''}`);
     }
     const js = await res.json();
-    renderScanResult(js.text);
-    return (js.text || '').toString();
+    const text = (js.result ?? js.text ?? '').toString();
+    renderScanResult(text);
+    return text;
 };
 
 // 업로더에서 파일 하나만 꺼내오기 (image.html/scan.html 겸용)
