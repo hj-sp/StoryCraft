@@ -34,7 +34,7 @@ from typing import Optional, Tuple, List
 
 
 # PDF/오피스 파서
-import fitz                     
+import fitz, base64                     
 from docx import Document       
 from pptx import Presentation   
 from openpyxl import load_workbook
@@ -187,7 +187,7 @@ def _crop_to_last_boundary(s: str) -> str:
 def ocr_image_bytes(img_bytes: bytes) -> str:
     if not img_bytes:
         return ""
-    # ✅ 가드 추가: 초기화 실패시 바로 빈 문자열, 로그 남김
+ 
     if vision_client is None:
         print("[OCR] vision_client is None (check GOOGLE_APPLICATION_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS)")
         return ""
@@ -204,6 +204,41 @@ def ocr_image_bytes(img_bytes: bytes) -> str:
         print("⚠️ OCR 실패:", e)
         return ""
 
+def extract_pdf_in_reading_order(pdf_path: str) -> str:
+    """텍스트/이미지 블록을 페이지 순서 및 좌표 순으로 섞어 출력"""
+    doc = fitz.open(pdf_path)
+    parts = []
+    for pno in range(len(doc)):
+        page = doc[pno]
+        # PyMuPDF dict: blocks = [{ "type":0|1, "bbox":[x0,y0,x1,y1], ... }]
+        blocks = page.get_text("dict").get("blocks", [])
+        # (type, y0, x0) 기준으로 안정 정렬
+        blocks.sort(key=lambda b: (round(b["bbox"][1], 1), round(b["bbox"][0], 1)))
+        parts.append(f"\n--- [p.{pno+1}] ---")
+        for b in blocks:
+            btype = b.get("type", 0)
+            x0, y0, x1, y1 = b["bbox"]
+            if btype == 0:  # text
+                # 블록 내 라인/스팬 결합
+                lines = []
+                for l in b.get("lines", []):
+                    line_text = "".join([s.get("text","") for s in l.get("spans",[])])
+                    lines.append(line_text)
+                text = "\n".join([t.strip() for t in lines if t and t.strip()])
+                if text:
+                    parts.append(text)
+            elif btype == 1:  # image
+                # 해당 bbox 영역만 렌더링해서 OCR
+                rect = fitz.Rect(x0, y0, x1, y1)
+                pix = page.get_pixmap(clip=rect, dpi=200)  # dpi 조절 가능(품질/속도 트레이드오프)
+                img_bytes = pix.tobytes("png")
+                try:
+                    ocr = ocr_image_bytes(img_bytes).strip()
+                except Exception:
+                    ocr = ""
+                if ocr:
+                    parts.append("[📷 이미지 OCR]\n" + ocr)
+    return "\n".join(parts).strip()
 # ---------------------------
 # 포맷별 추출기 (본문 + 내장 이미지)
 # 각 함수는 (본문텍스트, 이미지OCR리스트) 튜플 반환
@@ -1394,33 +1429,32 @@ def extract_text_by_ext(local_path: str, filename: str) -> str:
 
 @app.post("/fileScan")
 async def file_scan(file: UploadFile = File(...)):
-    """
-    하나의 업로드 엔드포인트로:
-    - 모든 문서 포맷의 본문 텍스트 추출
-    - 문서 내 '삽입 이미지'들 OCR 결과까지 병합
-    반환: {"filename", "text"}  (프론트 수정 불필요)
-    """
-    suffix = pathlib.Path(file.filename).suffix
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        binary = await file.read()
-        tmp.write(binary)
-        tmp_path = tmp.name
+    # 1) 업로드 저장
+    tmpdir = tempfile.mkdtemp()
+    in_path = os.path.join(tmpdir, file.filename)
+    with open(in_path, "wb") as f:
+        f.write(await file.read())
 
+    # 2) 확장자 판정 → PDF로 맞추기
+    ext = os.path.splitext(in_path)[1].lower()
+    if ext == ".pdf":
+        pdf_path = in_path
+    else:
+        pdf_path = libreoffice_to_pdf(in_path)  # 이미 있는 함수 재사용  
+
+    # 3) 페이지 흐름대로 추출(텍스트+이미지OCR 인터리브)
     try:
-        merged = extract_all_text_and_images(binary, file.filename)
-
-        MAX_CHARS = 100_000
-        if len(merged) > MAX_CHARS:
-            merged = merged[:MAX_CHARS]
-
-        return {"filename": file.filename, "text": merged}
+        merged = extract_pdf_in_reading_order(pdf_path)
     except Exception as e:
-        return JSONResponse(status_code=400, content={"error": str(e)})
-    finally:
-        try:
-            os.remove(tmp_path)
-        except:
-            pass
+        # 폴백: 텍스트만 추출 (기존 함수)  
+        merged = extract_pdf_text(pdf_path)
+
+    # (선택) 길이 제한이 있다면 적용
+    MAX = 100000
+    if len(merged) > MAX:
+        merged = merged[:MAX] + "\n…(생략)"
+
+    return {"filename": os.path.basename(file.filename), "text": merged}
 
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):
