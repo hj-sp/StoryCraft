@@ -39,7 +39,9 @@ from docx import Document
 from pptx import Presentation   
 from openpyxl import load_workbook
 import olefile                  
-import chardet                  
+import chardet      
+from docx import Document
+from pptx import Presentation
 
 
 try:
@@ -427,27 +429,24 @@ def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
 # 메인 디스패처
 # ---------------------------
 def extract_all_text_and_images(binary: bytes, filename: str) -> str:
-    """
-    파일 확장자에 따라 본문 텍스트 + 내장 이미지 OCR을 합쳐 하나의 문자열로 반환.
-    프론트 수정 없이 `text` 하나로 내려주기 위함.
-    """
     ext = (filename or "").lower().split(".")[-1]
     body, ocr_list = "", []
 
     try:
-        if ext in ["png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"]:
+        if ext in ["png","jpg","jpeg","bmp","gif","tif","tiff","webp"]:
             body, ocr_list = extract_from_image(binary)
 
         elif ext == "pdf":
-            body, ocr_list = extract_from_pdf(binary)
+            body = extract_pdf_in_reading_order_bytes(binary)  # 순서 보존
+            ocr_list = []
 
         elif ext == "docx":
-            body, ocr_list = extract_from_docx(binary) 
+            body, ocr_list = extract_from_docx(binary)
 
-        elif ext in ["pptx", "ppt"]:
+        elif ext == "pptx":
             body, ocr_list = extract_from_pptx(binary)
 
-        elif ext in ["xlsx", "xls"]:
+        elif ext == "xlsx":
             body, ocr_list = extract_from_xlsx(binary)
 
         elif ext == "txt":
@@ -457,20 +456,15 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
             body, ocr_list = extract_from_hwpx_zip(binary)
 
         elif ext == "hwp":
-            # 1) (가능하면) hwp5txt 로 본문 추출
-            body = extract_text_from_hwp_hwp5txt(binary)
-            # 2) BinData 이미지 OCR 도 병행
+            body = extract_text_from_hwp_hwp5txt(binary)  # 없으면 빈문자열
             _, ocr_list = extract_from_hwp_images_only(binary)
 
         else:
-            # 모르는 포맷: 일단 텍스트처럼 디코드 시도
             body = detect_text_encoding_and_decode(binary)
 
     except Exception as e:
-        # 개별 파서 실패 시에도 가능한 정보 반환
         print("parse error:", type(e).__name__, e)
 
-    # 최종 합치기 (프론트 변경 없이 text 하나로 반환)
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
@@ -480,6 +474,127 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
         return f"[📷 이미지 OCR]\n{ocr_text}"
     else:
         return body
+
+    
+def extract_office_like_bytes(binary: bytes, filename: str) -> str:
+    ext = os.path.splitext(filename)[1].lower()
+    body_parts = []
+    ocr_parts = []
+
+    if ext == ".docx":
+        # python-docx
+        from docx import Document
+        buf = io.BytesIO(binary)
+        doc = Document(buf)
+        body_parts.append("\n".join([p.text for p in doc.paragraphs if p.text.strip()]))
+        # 이미지: zip 열어 media/* 추출 → ocr_image_bytes
+        ocr_parts += ocr_images_from_zip(buf, "word/media/")
+
+    elif ext == ".pptx":
+        # python-pptx
+        from pptx import Presentation
+        buf = io.BytesIO(binary)
+        pres = Presentation(buf)
+        for slide in pres.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text:
+                    body_parts.append(shape.text)
+        ocr_parts += ocr_images_from_zip(buf, "ppt/media/")
+
+    elif ext == ".xlsx":
+        # openpyxl
+        import openpyxl, tempfile
+        buf = io.BytesIO(binary)
+        wb = openpyxl.load_workbook(buf, data_only=True)
+        for ws in wb.worksheets:
+            rows = []
+            for row in ws.iter_rows(values_only=True):
+                vals = [str(v) for v in row if v not in (None, "")]
+                if vals: rows.append("\t".join(vals))
+            if rows:
+                body_parts.append(f"[{ws.title}]\n" + "\n".join(rows))
+        ocr_parts += ocr_images_from_zip(buf, "xl/media/")
+
+    elif ext == ".hwpx":
+        # zip(xml) + 이미지
+        buf = io.BytesIO(binary)
+        ocr_parts += ocr_images_from_zip(buf, "Contents/Resources/")
+
+        # 본문(xml 파싱은 선택. 이미 구현돼 있으면 그 로직 호출)
+
+    elif ext == ".hwp":
+        # olefile 로 BinData 이미지 OCR
+        import olefile
+        f = io.BytesIO(binary)
+        ole = olefile.OleFileIO(f)
+        for s in ole.listdir():
+            if s[0] == 'BinData' and s[-1].lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
+                data = ole.openstream(s).read()
+                txt = ocr_image_bytes(data).strip()
+                if txt: ocr_parts.append(txt)
+        # 본문 텍스트는 hwp5txt가 없으면 생략/기존 로직
+
+    merged = "\n".join([t for t in ["\n".join(body_parts)] if t.strip()])
+    if ocr_parts:
+        if merged: merged += "\n\n[📷 이미지 OCR]\n" + "\n\n".join(ocr_parts)
+        else:      merged  = "[📷 이미지 OCR]\n" + "\n\n".join(ocr_parts)
+    return merged
+
+def ocr_images_from_zip(buf: io.BytesIO, prefix: str) -> list[str]:
+    import zipfile
+    texts = []
+    buf.seek(0)
+    with zipfile.ZipFile(buf) as z:
+        for name in z.namelist():
+            if name.startswith(prefix) and name.lower().endswith(('.png','.jpg','.jpeg','.bmp','.gif','.webp','.tif','.tiff')):
+                img_bytes = z.read(name)
+                txt = ocr_image_bytes(img_bytes).strip()
+                if txt:
+                    texts.append(txt)
+    return texts
+
+def extract_pdf_in_reading_order_bytes(raw: bytes) -> str:
+    try:
+        doc = fitz.open(stream=raw, filetype="pdf")
+    except Exception as e:
+        print("fitz open(pdf bytes) err:", e)
+        return ""
+    parts = []
+    for i in range(len(doc)):
+        page = doc[i]
+        blocks = page.get_text("dict").get("blocks", [])
+        blocks.sort(key=lambda b: (round(b["bbox"][1],1), round(b["bbox"][0],1)))
+        parts.append(f"\n--- [p.{i+1}] ---")
+        for b in blocks:
+            t = b.get("type", 0)
+            x0,y0,x1,y1 = b["bbox"]
+            if t == 0:
+                lines = []
+                for l in b.get("lines", []):
+                    lines.append("".join(s.get("text","") for s in l.get("spans",[])))
+                txt = "\n".join(t.strip() for t in lines if t and t.strip())
+                if txt: parts.append(txt)
+            elif t == 1:
+                rect = fitz.Rect(x0,y0,x1,y1)
+                pix = page.get_pixmap(clip=rect, dpi=200)
+                ocr = ocr_image_bytes(pix.tobytes("png")).strip()
+                if ocr:
+                    parts.append("[📷 이미지 OCR]\n"+ocr)
+    return "\n".join(parts).strip()
+
+def should_ocr(img_bytes: bytes, min_wh: int = 28) -> bool:
+    try:
+        from PIL import Image
+        im = Image.open(io.BytesIO(img_bytes))
+        w,h = im.size
+        return (w >= min_wh and h >= min_wh)
+    except Exception:
+        return False
+
+# 사용 예 (DOCX/PPTX/XLSX/ZIP 스캔, PDF 이미지 추출 등)
+if img_bytes and should_ocr(img_bytes):
+    txt = ocr_image_bytes(img_bytes).strip()
+    if txt: texts.append(txt)
 
 
 
@@ -1429,32 +1544,34 @@ def extract_text_by_ext(local_path: str, filename: str) -> str:
 
 @app.post("/fileScan")
 async def file_scan(file: UploadFile = File(...)):
-    # 1) 업로드 저장
-    tmpdir = tempfile.mkdtemp()
-    in_path = os.path.join(tmpdir, file.filename)
-    with open(in_path, "wb") as f:
-        f.write(await file.read())
-
-    # 2) 확장자 판정 → PDF로 맞추기
-    ext = os.path.splitext(in_path)[1].lower()
-    if ext == ".pdf":
-        pdf_path = in_path
-    else:
-        pdf_path = libreoffice_to_pdf(in_path)  # 이미 있는 함수 재사용  
-
-    # 3) 페이지 흐름대로 추출(텍스트+이미지OCR 인터리브)
     try:
-        merged = extract_pdf_in_reading_order(pdf_path)
+        binary = await file.read()
+        filename = file.filename or "upload"
+        ext = os.path.splitext(filename)[1].lower()
+
+        if ext == ".pdf":
+            # PDF는 페이지/좌표 기반(가능하면 extract_pdf_in_reading_order 사용)
+            merged = extract_pdf_in_reading_order_bytes(binary)  # 또는 기존 extract_pdf_text
+        elif ext in (".docx", ".pptx", ".xlsx", ".hwpx", ".hwp"):
+            # ✅ LibreOffice 변환 없이 포맷별 파서 + 이미지OCR
+            merged = extract_office_like_bytes(binary, filename)  # 아래 헬퍼들로 구현
+        else:
+            # 기타: 텍스트/이미지 판별해서 처리
+            merged = try_generic_extract(binary, filename)
+
+        if not merged:
+            merged = ""
+
+        # 너무 길면 컷(있다면 유지)
+        MAX = 100_000
+        if len(merged) > MAX:
+            merged = merged[:MAX] + "\n…(생략)"
+
+        return {"filename": filename, "text": merged}
     except Exception as e:
-        # 폴백: 텍스트만 추출 (기존 함수)  
-        merged = extract_pdf_text(pdf_path)
+        print("⚠️ [fileScan fatal]", e)
+        return {"filename": getattr(file, "filename", ""), "text": "", "error": str(e)}
 
-    # (선택) 길이 제한이 있다면 적용
-    MAX = 100000
-    if len(merged) > MAX:
-        merged = merged[:MAX] + "\n…(생략)"
-
-    return {"filename": os.path.basename(file.filename), "text": merged}
 
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):
