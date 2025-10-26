@@ -419,21 +419,78 @@ def extract_text_from_hwp_hwp5txt(raw: bytes) -> str:
         except: pass
 
 def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
-    import zipfile, io
+    """
+    HWPX(zip/xml)에서 본문 텍스트 + 내장 이미지 OCR을 함께 추출
+    - 텍스트: Contents 아래 xml에서 { * }t / { * }p 등 텍스트 노드 모으기
+    - 이미지: Contents/Resources/* 하위 이미지 OCR
+    """
+    import zipfile, io, re
     text_parts, ocr_parts = [], []
+
+    def _append_text(txt: str):
+        t = (txt or "").strip()
+        if t:
+            text_parts.append(t)
+
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            # 1) 이미지 OCR (기존 로직 유지)
             for name in zf.namelist():
                 low = name.lower()
-                # HWPX는 주로 Contents/Resources/… 경로에 이미지가 있음
                 if ("/resources/" in low or low.startswith("contents/")) and low.split(".")[-1] in (
                     "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
                 ):
-                    ocr_parts.append(ocr_image_bytes(zf.read(name)))
-            # (원하면 여기서 XML 텍스트도 추가 파싱)
+                    try:
+                        ocr_txt = ocr_image_bytes(zf.read(name)).strip()
+                        if ocr_txt:
+                            ocr_parts.append(ocr_txt)
+                    except Exception as e:
+                        print("hwpx image ocr err:", e)
+
+            # 2) 본문 텍스트: Contents/*.xml 파싱
+            for name in zf.namelist():
+                low = name.lower()
+                if not (low.startswith("contents/") and low.endswith(".xml")):
+                    continue
+                try:
+                    xml_bytes = zf.read(name)
+                    # 가끔 인코딩/엔티티 문제가 있어 errors='ignore'
+                    xml_text = xml_bytes.decode("utf-8", errors="ignore")
+                    # XML 파싱
+                    try:
+                        root = ET.fromstring(xml_text)
+                    except Exception:
+                        # 최후 수단: 태그 제거 러프 파싱(권장X)
+                        rough = re.sub(r"<[^>]+>", " ", xml_text)
+                        _append_text(re.sub(r"\s+", " ", rough))
+                        continue
+
+                    # 보통 {ns}t 가 텍스트 런, {ns}p 가 문단
+                    # 네임스페이스 와일드카드 사용
+                    # 1) 런 텍스트 우선
+                    for node in root.findall(".//{*}t"):
+                        if node.text:
+                            _append_text(node.text)
+
+                    # 2) 문단 단위 보강(텍스트가 거의 없을 경우 대비)
+                    #   문단 안의 모든 텍스트를 합침
+                    for p in root.findall(".//{*}p"):
+                        buf = []
+                        for tnode in p.findall(".//{*}t"):
+                            if tnode.text:
+                                buf.append(tnode.text.strip())
+                        line = " ".join(buf).strip()
+                        if line:
+                            _append_text(line)
+
+                except Exception as e:
+                    print("hwpx xml parse err:", name, e)
+
     except Exception as e:
         print("hwpx zip scan err:", e)
-    return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
+
+    body = "\n".join(text_parts).strip()
+    return body, [t for t in ocr_parts if t]
 
 def detect_text_encoding_and_decode(b: bytes) -> str:
     for enc in ("utf-8", "cp949", "euc-kr", "latin1"):
