@@ -27,3 +27,7 @@ imageio-ffmpeg
 google-cloud-speech
 kss
 git+https://github.com/Crystal-0109/hanspell.git#egg=hanspell
+PyMuPDF           
+python-docx
+olefile      
+chardet
