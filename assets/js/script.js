@@ -1422,14 +1422,7 @@ function getSelectedFile() {
 
 // 이미지 파일 여부 판별
 function isImageFile(file) {
-    if (!file) return false;
-    // MIME 우선, 없으면 확장자 판별
-    const mime = (file.type || '').toLowerCase();
-    const name = (file.name || '').toLowerCase();
-    return (
-        mime.startsWith('image/') ||
-        /\.(png|jpe?g|gif|bmp|webp|tiff?)$/.test(name)
-    );
+  return /^image\//.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name);
 }
 
 async function handlePdfScanAndProcess({
@@ -7623,4 +7616,79 @@ info.addEventListener('mouseleave', () => {
         tooltip.remove();
         tooltip = null;
     }
+});
+
+
+// 파일 속 이미지 추출
+function renderScanResult(mergedText) {
+  const area = document.getElementById('resultArea');
+  if (!area) return;
+  area.innerHTML = '';
+
+  const raw = (mergedText || '').toString();
+  // 개행 변형까지 커버하는 분리
+  const markerRe = /\n*\[📷 이미지 OCR\]\n*/;
+  const parts = raw.split(markerRe);
+  const bodyText = (parts[0] || '').trim();
+  const imgText  = (parts[1] || '').trim();
+
+  const sec = (title, text) => `
+    <section class="sc-block">
+      <h3 style="margin:12px 0 8px;">${title}</h3>
+      <pre style="white-space:pre-wrap;word-break:break-word;margin:0;">${escapeHtml(text)}</pre>
+    </section>`;
+
+  if (bodyText) area.insertAdjacentHTML('beforeend', sec('본문 텍스트', bodyText));
+  if (imgText)  area.insertAdjacentHTML('beforeend', sec('📷 이미지 OCR', imgText));
+  if (!bodyText && !imgText) area.textContent = '텍스트를 추출하지 못했습니다.';
+
+  // 디버그(배포 때 일시적으로 켜 두면 좋음)
+  console.debug('[fileScan:text]', raw.slice(0, 400));
+}
+
+function escapeHtml(s) {
+  return (s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+
+// 파일 업로드 시 자동 추출 & 렌더
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('fileAny');
+  const spinner = document.getElementById('loadingSpinner');
+  const area = document.getElementById('resultArea');
+  if (!input || !area) return;
+
+  input.addEventListener('change', async () => {
+    const file = getSelectedFile && getSelectedFile();
+    if (!file) return;
+
+    // 스피너 ON
+    if (spinner) spinner.style.display = 'block';
+    area.innerHTML = '';
+
+    try {
+      let text;
+      if (isImageFile && isImageFile(file)) {
+        // 이미지 단일 파일은 visionOCR 사용
+        const fd = new FormData();
+        fd.append('image', file);
+        const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('visionOCR 실패: ' + res.status);
+        const js = await res.json();
+        text = (js.text || js.result || '').toString();
+      } else {
+        // 문서 계열은 /fileScan (본문 + 이미지OCR 합쳐 내려옴)
+        text = await extractTextFromAnyFile(file); // 이미 구현됨
+      }
+      window.lastExtractedText = text;
+      renderScanResult(text);
+    } catch (e) {
+      console.error(e);
+      area.textContent = '❗ 처리 중 오류가 발생했습니다.';
+    } finally {
+      if (spinner) spinner.style.display = 'none';
+    }
+  });
 });
