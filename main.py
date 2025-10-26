@@ -31,7 +31,7 @@ from io import BytesIO
 import imageio_ffmpeg
 from hanspell import spell_checker
 from typing import Optional, Tuple, List
-
+from PIL import Image
 
 # PDF/오피스 파서
 import fitz, base64                     
@@ -186,6 +186,15 @@ def _crop_to_last_boundary(s: str) -> str:
 
 # 문서 이미지 텍스트 추출 관련
 
+def should_ocr(img_bytes: bytes, min_wh: int = 28) -> bool:
+    try:
+        from PIL import Image
+        im = Image.open(io.BytesIO(img_bytes))
+        w, h = im.size
+        return (w >= min_wh and h >= min_wh)
+    except Exception:
+        return False
+    
 def ocr_image_bytes(img_bytes: bytes) -> str:
     if not img_bytes:
         return ""
@@ -256,19 +265,19 @@ def extract_from_pdf(raw: bytes) -> Tuple[str, List[str]]:
     text_parts, ocr_parts = [], []
     doc = fitz.open(stream=raw, filetype="pdf")
     for page in doc:
-        # 본문 텍스트
         text_parts.append(page.get_text())
-        # 페이지 내 이미지 → OCR
         for img in page.get_images(full=True):
             xref = img[0]
             try:
                 meta = doc.extract_image(xref)
                 img_bytes = meta.get("image", b"")
-                if img_bytes:
-                    ocr_parts.append(ocr_image_bytes(img_bytes))
+                if img_bytes and should_ocr(img_bytes):
+                    txt = ocr_image_bytes(img_bytes).strip()
+                    if txt:
+                        ocr_parts.append(txt)
             except Exception as e:
                 print("pdf image extract err:", e)
-    return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
+    return "\n".join(text_parts).strip(), ocr_parts
 
 def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
     import zipfile, io
@@ -425,6 +434,15 @@ def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
     except Exception as e:
         print("hwpx zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
+
+def detect_text_encoding_and_decode(b: bytes) -> str:
+    for enc in ("utf-8", "cp949", "euc-kr", "latin1"):
+        try:
+            return b.decode(enc)
+        except Exception:
+            pass
+    return ""
+
 # ---------------------------
 # 메인 디스패처
 # ---------------------------
@@ -546,12 +564,17 @@ def ocr_images_from_zip(buf: io.BytesIO, prefix: str) -> list[str]:
     buf.seek(0)
     with zipfile.ZipFile(buf) as z:
         for name in z.namelist():
-            if name.startswith(prefix) and name.lower().endswith(('.png','.jpg','.jpeg','.bmp','.gif','.webp','.tif','.tiff')):
+            low = name.lower()
+            if name.startswith(prefix) and low.endswith((
+                '.png','.jpg','.jpeg','.bmp','.gif','.webp','.tif','.tiff'
+            )):
                 img_bytes = z.read(name)
-                txt = ocr_image_bytes(img_bytes).strip()
-                if txt:
-                    texts.append(txt)
+                if img_bytes and should_ocr(img_bytes):
+                    txt = ocr_image_bytes(img_bytes).strip()
+                    if txt:
+                        texts.append(txt)
     return texts
+
 
 def extract_pdf_in_reading_order_bytes(raw: bytes) -> str:
     try:
@@ -581,21 +604,6 @@ def extract_pdf_in_reading_order_bytes(raw: bytes) -> str:
                 if ocr:
                     parts.append("[📷 이미지 OCR]\n"+ocr)
     return "\n".join(parts).strip()
-
-def should_ocr(img_bytes: bytes, min_wh: int = 28) -> bool:
-    try:
-        from PIL import Image
-        im = Image.open(io.BytesIO(img_bytes))
-        w,h = im.size
-        return (w >= min_wh and h >= min_wh)
-    except Exception:
-        return False
-
-# 사용 예 (DOCX/PPTX/XLSX/ZIP 스캔, PDF 이미지 추출 등)
-if img_bytes and should_ocr(img_bytes):
-    txt = ocr_image_bytes(img_bytes).strip()
-    if txt: texts.append(txt)
-
 
 
 load_dotenv()
