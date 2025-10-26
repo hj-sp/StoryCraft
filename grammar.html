@@ -83,8 +83,7 @@
                         </li>
                         <li><a href="honorific.html">Honorific</a></li>
                         <li><a href="translate.html">Translate</a></li>
-                        <li><a href="scan.html">Scan</a></li>
-                        <li><a href="image.html">Image Scan</a></li>
+                        <li><a href="image.html">Scan</a></li>
                         <li><a href="speech.html">Speech</a></li>
                         <li><a href="editor.html">Editor</a></li>
                     </ul>
@@ -243,8 +242,7 @@
                             <li><a href="grammar.html">Grammar</a></li>
                             <li><a href="honorific.html">Honorific</a></li>
                             <li><a href="translate.html">Translate</a></li>
-                            <li><a href="scan.html">Scan</a></li>
-                            <li><a href="image.html">Image Scan</a></li>
+                            <li><a href="image.html">Scan</a></li>
                             <li><a href="speech.html">Speech</a></li>
                             <li><a href="editor.html">Editor</a></li>
                         </ul>
@@ -296,94 +294,102 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
 
         <script>
-(() => {
-  // ---- 안전 유틸 (중복 선언 방지) ----
-  window.SC = window.SC || {};
-  if (!window.SC.setHidden) {
-    window.SC.setHidden = (el, v) => { if (el) el.hidden = !!v; };
-  }
+            (() => {
+                // ---- 안전 유틸 (중복 선언 방지) ----
+                window.SC = window.SC || {};
+                if (!window.SC.setHidden) {
+                    window.SC.setHidden = (el, v) => {
+                        if (el) el.hidden = !!v;
+                    };
+                }
 
-  function removeIcons(text) {
-    if (typeof text !== 'string') return text || '';
-    // 필요 시 아이콘/태그 제거 규칙은 여기서 확장
-    return text
-      .replace(/<i[^>]*>.*?<\/i>/g, '')
-      .replace(/[🖊️💾]/g, '');
-  }
+                function removeIcons(text) {
+                    if (typeof text !== 'string') return text || '';
+                    // 필요 시 아이콘/태그 제거 규칙은 여기서 확장
+                    return text
+                        .replace(/<i[^>]*>.*?<\/i>/g, '')
+                        .replace(/[🖊️💾]/g, '');
+                }
 
-  function $(sel) { return document.querySelector(sel); }
+                function $(sel) {
+                    return document.querySelector(sel);
+                }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // ---- 이 페이지에 있을 수도/없을 수도 있는 메뉴들: null 가드 필수 ----
-    const menu = document.getElementById('customContextMenu');
-    const styleSubmenu = document.getElementById('styleSubmenu');
-    const translateSubmenu = document.getElementById('translateSubmenu');
+                document.addEventListener('DOMContentLoaded', () => {
+                    // ---- 이 페이지에 있을 수도/없을 수도 있는 메뉴들: null 가드 필수 ----
+                    const menu = document.getElementById('customContextMenu');
+                    const styleSubmenu =
+                        document.getElementById('styleSubmenu');
+                    const translateSubmenu =
+                        document.getElementById('translateSubmenu');
 
-    function hideAllMenus() {
-      window.SC.setHidden(menu, true);
-      window.SC.setHidden(styleSubmenu, true);
-      window.SC.setHidden(translateSubmenu, true);
-    }
-    // 예: 필요 시에만 호출
-    // hideAllMenus();
+                    function hideAllMenus() {
+                        window.SC.setHidden(menu, true);
+                        window.SC.setHidden(styleSubmenu, true);
+                        window.SC.setHidden(translateSubmenu, true);
+                    }
+                    // 예: 필요 시에만 호출
+                    // hideAllMenus();
 
-    // ---- 필수 요소들 ----
-    const grammarBtn = document.getElementById('grammarBtn');
-    const userInput = document.getElementById('userInput');
-    const spinner = document.getElementById('loadingSpinner');
-    const tbody = document.querySelector('#grammarTable tbody');
+                    // ---- 필수 요소들 ----
+                    const grammarBtn = document.getElementById('grammarBtn');
+                    const userInput = document.getElementById('userInput');
+                    const spinner = document.getElementById('loadingSpinner');
+                    const tbody = document.querySelector('#grammarTable tbody');
 
-    // 안전성 체크
-    if (!grammarBtn || !userInput || !spinner || !tbody) {
-      console.warn('[grammar] missing element', { grammarBtn, userInput, spinner, tbody });
-      return;
-    }
+                    // 안전성 체크
+                    if (!grammarBtn || !userInput || !spinner || !tbody) {
+                        console.warn('[grammar] missing element', {
+                            grammarBtn,
+                            userInput,
+                            spinner,
+                            tbody,
+                        });
+                        return;
+                    }
 
-    async function mistralGrammarSafe(e) {
-      e.preventDefault();
+                    async function mistralGrammarSafe(e) {
+                        e.preventDefault();
 
-      // 입력 텍스트 확보 + 방어
-      const original = (userInput.value ?? '').toString();
-      const inputText = removeIcons(original);
+                        // 입력 텍스트 확보 + 방어
+                        const original = (userInput.value ?? '').toString();
+                        const inputText = removeIcons(original);
 
-      // 빈 입력이면 테이블 초기화만
-      if (!inputText.trim()) {
-        tbody.innerHTML = '';
-        return;
-      }
+                        // 빈 입력이면 테이블 초기화만
+                        if (!inputText.trim()) {
+                            tbody.innerHTML = '';
+                            return;
+                        }
 
-      // 스피너 on
-      spinner.style.display = 'block';
+                        // 스피너 on
+                        spinner.style.display = 'block';
 
-      try {
-        // === 여기에 실제 API 호출/처리 로직 ===
-        // 예시 응답 (실사용 시 fetch 대체)
-        // const res = await fetch(...);
-        // const data = await res.json();
-        // const resultText = removeIcons(data?.output ?? '');
-
-        
-      } catch (err) {
-        console.error('Fetch error:', err);
-        // 사용자가 보게 될 에러 표시 (원하면 resultArea에 메시지 출력)
-        tbody.innerHTML = `
+                        try {
+                            // === 여기에 실제 API 호출/처리 로직 ===
+                            // 예시 응답 (실사용 시 fetch 대체)
+                            // const res = await fetch(...);
+                            // const data = await res.json();
+                            // const resultText = removeIcons(data?.output ?? '');
+                        } catch (err) {
+                            console.error('Fetch error:', err);
+                            // 사용자가 보게 될 에러 표시 (원하면 resultArea에 메시지 출력)
+                            tbody.innerHTML = `
           <tr><td colspan="2" style="color:#c00">오류가 발생했어요. 잠시 후 다시 시도해 주세요.</td></tr>
         `;
-      } finally {
-        // 스피너 off
-        spinner.style.display = 'none';
-      }
-    }
+                        } finally {
+                            // 스피너 off
+                            spinner.style.display = 'none';
+                        }
+                    }
 
-    function escapeHtml(s) {
-      return String(s)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
-    }
-  });
-})();
-</script>
-
+                    function escapeHtml(s) {
+                        return String(s)
+                            .replaceAll('&', '&amp;')
+                            .replaceAll('<', '&lt;')
+                            .replaceAll('>', '&gt;');
+                    }
+                });
+            })();
+        </script>
     </body>
 </html>

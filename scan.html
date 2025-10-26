@@ -95,21 +95,192 @@
             </div>
         </header>
 
-        <main class="main">
-            <!-- Pricing Section -->
-            <section id="pricing" class="pricing section">
-                <!-- Section Title -->
-                <div class="container section-title" data-aos="fade-up">
-                    <h2>Scan</h2>
-                    <div class="container">
-                        <form id="uploadForm">
-                            <input
-                                type="file"
-                                id="fileAny"
-                                name="file"
-                                accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
-                                class="pdfScanFileChooseBtn_SC"
-                            />
+        <main class="main page-wrap">
+            <div class="container section-title" data-aos="fade-up">
+                <div class="container">
+                    <div class="page-button">
+                        <!-- <label for="styleSelect">문체 선택:</label> -->
+                        <select id="styleSelect">
+                            <option value="casual">구어체</option>
+                            <option value="formal">격식체</option>
+                            <option value="literary">문학체</option>
+                            <option value="academic">학술체</option>
+                        </select>
+                        <button
+                            id="pdfScanStyleBtn"
+                            type="button"
+                            name="action"
+                            value="style"
+                            class="resultBtn_SC"
+                        >
+                            문체 변경
+                        </button>
+                        <button
+                            id="pdfScanRewriteBtn"
+                            type="button"
+                            name="action"
+                            value="rewrite"
+                            class="resultBtn_SC"
+                        >
+                            재작성
+                        </button>
+                        <button
+                            id="pdfScanSummaryBtn"
+                            type="button"
+                            name="action"
+                            value="summary"
+                            class="resultBtn_SC"
+                        >
+                            요약
+                        </button>
+                        <button
+                            id="pdfScanExpandBtn"
+                            type="button"
+                            name="action"
+                            value="expand"
+                            class="resultBtn_SC"
+                        >
+                            확장
+                        </button>
+                        <button
+                            id="pdfScanGrammarBtn"
+                            type="button"
+                            name="action"
+                            value="grammar"
+                            class="resultBtn_SC"
+                        >
+                            문법 교정
+                        </button>
+                        <button
+                            id="pdfScanHonorificBtn"
+                            type="button"
+                            name="action"
+                            value="honorific"
+                            class="resultBtn_SC"
+                        >
+                            높임말
+                        </button>
+                        <button
+                            id="pdfScanInformalBtn"
+                            type="button"
+                            name="action"
+                            value="informal"
+                            class="resultBtn_SC"
+                        >
+                            반말
+                        </button>
+                        <select id="sourceSelector">
+                            <option value="auto" selected>자동 감지</option>
+                            <option value="gu">구자라트어</option>
+                            <option value="el">그리스어</option>
+                            <option value="ne">네팔어</option>
+                            <option value="nl">네덜란드어</option>
+                            <option value="de">독일어</option>
+                            <option value="ru">러시아어</option>
+                            <option value="ro">루마니아어</option>
+                            <option value="mr">마라티어</option>
+                            <option value="ms">말레이어</option>
+                            <option value="vi">베트남어</option>
+                            <option value="bn">벵골어</option>
+                            <option value="sv">스웨덴어</option>
+                            <option value="es">스페인어</option>
+                            <option value="af">아프리칸스어</option>
+                            <option value="ar">아랍어</option>
+                            <option value="en">영어</option>
+                            <option value="uk">우크라이나어</option>
+                            <option value="it">이탈리아어</option>
+                            <option value="ja">일본어</option>
+                            <option value="jv">자바어</option>
+                            <option value="ka">조지아어</option>
+                            <option value="zh-CN">중국어(간체)</option>
+                            <option value="zh-TW">중국어(번체)</option>
+                            <option value="ta">타밀어</option>
+                            <option value="th">태국어</option>
+                            <option value="tr">터키어</option>
+                            <option value="fa">페르시아어</option>
+                            <option value="pt">포르투갈어</option>
+                            <option value="pl">폴란드어</option>
+                            <option value="fr">프랑스어</option>
+                            <option value="ko">한국어</option>
+                            <option value="hi">힌디어</option>
+                        </select>
+                        <div class="page-arrow">
+                            <span class="arrow"></span>
+                        </div>
+                        <select id="targetSelector">
+                            <option value="gu">구자라트어</option>
+                            <option value="el">그리스어</option>
+                            <option value="ne">네팔어</option>
+                            <option value="nl">네덜란드어</option>
+                            <option value="de">독일어</option>
+                            <option value="ru">러시아어</option>
+                            <option value="ro">루마니아어</option>
+                            <option value="mr">마라티어</option>
+                            <option value="ms">말레이어</option>
+                            <option value="vi">베트남어</option>
+                            <option value="bn">벵골어</option>
+                            <option value="sv">스웨덴어</option>
+                            <option value="es">스페인어</option>
+                            <option value="af">아프리칸스어</option>
+                            <option value="ar">아랍어</option>
+                            <option value="en">영어</option>
+                            <option value="uk">우크라이나어</option>
+                            <option value="it">이탈리아어</option>
+                            <option value="ja">일본어</option>
+                            <option value="jv">자바어</option>
+                            <option value="ka">조지아어</option>
+                            <option value="zh-CN">중국어(간체)</option>
+                            <option value="zh-TW">중국어(번체)</option>
+                            <option value="ta">타밀어</option>
+                            <option value="th">태국어</option>
+                            <option value="tr">터키어</option>
+                            <option value="fa">페르시아어</option>
+                            <option value="pt">포르투갈어</option>
+                            <option value="pl">폴란드어</option>
+                            <option value="fr">프랑스어</option>
+                            <option value="ko">한국어</option>
+                            <option value="hi">힌디어</option>
+                        </select>
+                        <button
+                            id="pdfScanTranslateBtn"
+                            type="button"
+                            class="resultBtn_SC"
+                        >
+                            번역
+                        </button>
+                        <button
+                            id="pdfDownloadBtn"
+                            class="resultAreaPdfDownloadBtn_SC"
+                        >
+                            💾
+                        </button>
+                    </div>
+                    <div
+                        class="resultBox grammarBox"
+                        id="grammarBox"
+                        style="display: none"
+                    >
+                        <table id="grammarTable" class="grammar-table">
+                            <thead>
+                                <tr>
+                                    <th>교정문</th>
+                                    <th>관련 규범&설명</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="page-inputResult">
+                        <div>
+                            <form id="uploadForm">
+                                <input
+                                    type="file"
+                                    id="fileAny"
+                                    name="file"
+                                    accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
+                                    class="pdfScanFileChooseBtn_SC"
+                                />
+                            </form>
                             <small
                                 style="
                                     display: block;
@@ -120,223 +291,31 @@
                                 지원: PDF, 한글(HWP/HWPX), Word(DOC/DOCX),
                                 Excel(XLS/XLSX), PowerPoint(PPT/PPTX), TXT
                             </small>
-                            <div>
-                                <label for="styleSelect">문체 선택:</label>
-                                <select id="styleSelect">
-                                    <option value="casual">구어체</option>
-                                    <option value="formal">격식체</option>
-                                    <option value="literary">문학체</option>
-                                    <option value="academic">학술체</option>
-                                </select>
-                                <button
-                                    id="pdfScanStyleBtn"
-                                    type="button"
-                                    name="action"
-                                    value="style"
-                                    class="resultBtn_SC"
-                                >
-                                    문체 변경
-                                </button>
-                                <button
-                                    id="pdfScanRewriteBtn"
-                                    type="button"
-                                    name="action"
-                                    value="rewrite"
-                                    class="resultBtn_SC"
-                                >
-                                    재작성
-                                </button>
-                                <button
-                                    id="pdfScanSummaryBtn"
-                                    type="button"
-                                    name="action"
-                                    value="summary"
-                                    class="resultBtn_SC"
-                                >
-                                    요약
-                                </button>
-                                <button
-                                    id="pdfScanExpandBtn"
-                                    type="button"
-                                    name="action"
-                                    value="expand"
-                                    class="resultBtn_SC"
-                                >
-                                    확장
-                                </button>
-                                <button
-                                    id="pdfScanGrammarBtn"
-                                    type="button"
-                                    name="action"
-                                    value="grammar"
-                                    class="resultBtn_SC"
-                                >
-                                    문법 교정
-                                </button>
-                                <button
-                                    id="pdfScanHonorificBtn"
-                                    type="button"
-                                    name="action"
-                                    value="honorific"
-                                    class="resultBtn_SC"
-                                >
-                                    경어체
-                                </button>
-                                <button
-                                    id="pdfScanInformalBtn"
-                                    type="button"
-                                    name="action"
-                                    value="informal"
-                                    class="resultBtn_SC"
-                                >
-                                    평어체
-                                </button>
-
-                                <hr />
-                                <div style="margin-top: 10px">
-                                    <label for="sourceSelector"
-                                        >원본 언어:</label
-                                    >
-                                    <select id="sourceSelector">
-                                        <option value="auto" selected>
-                                            자동 감지
-                                        </option>
-                                        <option value="gu">구자라트어</option>
-                                        <option value="el">그리스어</option>
-                                        <option value="ne">네팔어</option>
-                                        <option value="nl">네덜란드어</option>
-                                        <option value="de">독일어</option>
-                                        <option value="ru">러시아어</option>
-                                        <option value="ro">루마니아어</option>
-                                        <option value="mr">마라티어</option>
-                                        <option value="ms">말레이어</option>
-                                        <option value="vi">베트남어</option>
-                                        <option value="bn">벵골어</option>
-                                        <option value="sv">스웨덴어</option>
-                                        <option value="es">스페인어</option>
-                                        <option value="af">아프리칸스어</option>
-                                        <option value="ar">아랍어</option>
-                                        <option value="en">영어</option>
-                                        <option value="uk">우크라이나어</option>
-                                        <option value="it">이탈리아어</option>
-                                        <option value="ja">일본어</option>
-                                        <option value="jv">자바어</option>
-                                        <option value="ka">조지아어</option>
-                                        <option value="zh-CN">
-                                            중국어(간체)
-                                        </option>
-                                        <option value="zh-TW">
-                                            중국어(번체)
-                                        </option>
-                                        <option value="ta">타밀어</option>
-                                        <option value="th">태국어</option>
-                                        <option value="tr">터키어</option>
-                                        <option value="fa">페르시아어</option>
-                                        <option value="pt">포르투갈어</option>
-                                        <option value="pl">폴란드어</option>
-                                        <option value="fr">프랑스어</option>
-                                        <option value="ko">한국어</option>
-                                        <option value="hi">힌디어</option>
-                                    </select>
-
-                                    <label for="targetSelector"
-                                        >대상 언어:</label
-                                    >
-                                    <select id="targetSelector">
-                                        <option value="gu">구자라트어</option>
-                                        <option value="el">그리스어</option>
-                                        <option value="ne">네팔어</option>
-                                        <option value="nl">네덜란드어</option>
-                                        <option value="de">독일어</option>
-                                        <option value="ru">러시아어</option>
-                                        <option value="ro">루마니아어</option>
-                                        <option value="mr">마라티어</option>
-                                        <option value="ms">말레이어</option>
-                                        <option value="vi">베트남어</option>
-                                        <option value="bn">벵골어</option>
-                                        <option value="sv">스웨덴어</option>
-                                        <option value="es">스페인어</option>
-                                        <option value="af">아프리칸스어</option>
-                                        <option value="ar">아랍어</option>
-                                        <option value="en">영어</option>
-                                        <option value="uk">우크라이나어</option>
-                                        <option value="it">이탈리아어</option>
-                                        <option value="ja">일본어</option>
-                                        <option value="jv">자바어</option>
-                                        <option value="ka">조지아어</option>
-                                        <option value="zh-CN">
-                                            중국어(간체)
-                                        </option>
-                                        <option value="zh-TW">
-                                            중국어(번체)
-                                        </option>
-                                        <option value="ta">타밀어</option>
-                                        <option value="th">태국어</option>
-                                        <option value="tr">터키어</option>
-                                        <option value="fa">페르시아어</option>
-                                        <option value="pt">포르투갈어</option>
-                                        <option value="pl">폴란드어</option>
-                                        <option value="fr">프랑스어</option>
-                                        <option value="ko">한국어</option>
-                                        <option value="hi">힌디어</option>
-                                    </select>
-
-                                    <button
-                                        id="pdfScanTranslateBtn"
-                                        type="button"
-                                        class="resultBtn_SC"
-                                    >
-                                        번역하기 🌍
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                        <div
-                            id="loadingSpinner"
-                            style="
-                                display: none;
-                                text-align: center;
-                                margin: 10px 0;
-                            "
-                        >
-                            <div class="spinner"></div>
-                            <p style="margin-top: 5px; color: gray">
-                                ⏳ 처리 중입니다...
-                            </p>
                         </div>
-
-                        <div
-                            class="resultBox grammarBox"
-                            id="grammarBox"
-                            style="display: none"
-                        >
-                            <table id="grammarTable" class="grammar-table">
-                                <thead>
-                                    <tr>
-                                        <th>교정문</th>
-                                        <th>관련 규범&설명</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
+                        <div class="page-arrow">
+                            <span class="arrow"></span>
                         </div>
-
                         <div
                             id="resultArea"
                             class="resultArea_SC"
                             style="text-align: left"
                         ></div>
-                        <button
-                            id="pdfDownloadBtn"
-                            class="resultBtn_SC resultAreaPdfDownloadBtn_SC"
-                        >
-                            결과를 PDF로 다운로드
-                        </button>
+                    </div>
+                    <div
+                        id="loadingSpinner"
+                        style="
+                            display: none;
+                            text-align: center;
+                            margin: 10px 0;
+                        "
+                    >
+                        <div class="spinner"></div>
+                        <p style="margin-top: 5px; color: gray">
+                            ⏳ 처리 중입니다...
+                        </p>
                     </div>
                 </div>
-                <!-- End Section Title -->
-                <!-- /Pricing Section -->
-            </section>
+            </div>
         </main>
 
         <footer id="footer" class="footer">

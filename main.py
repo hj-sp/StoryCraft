@@ -32,14 +32,7 @@ from pydub import AudioSegment
 from io import BytesIO
 import imageio_ffmpeg
 from hanspell import spell_checker
-from typing import Optional, Tuple, List
-import io, zipfile, tempfile
-import fitz  
-from docx import Document
-from pptx import Presentation
-from openpyxl import load_workbook
-import olefile 
-import chardet
+from typing import Optional
 
 try:
     import kss
@@ -181,176 +174,10 @@ def _crop_to_last_boundary(s: str) -> str:
     m = list(re.finditer(r'(다\.|요\.|니다\.)|[.!?…]|[”’"\')\]】〉》」』]', s))
     return s if not m else s[:m[-1].end()]
 
-#이미지 처리
-
-def ocr_image_bytes(img_bytes: bytes) -> str:
-    if not img_bytes:
-        return ""
-    image = vision.Image(content=img_bytes)
-    resp = vision_client.text_detection(image=image)
-    return (resp.full_text_annotation.text or "").strip() if resp.full_text_annotation else (resp.text_annotations[0].description.strip() if resp.text_annotations else "")
-
-def detect_text_encoding_and_decode(raw: bytes) -> str:
-    if not raw:
-        return ""
-    try:
-        guess = chardet.detect(raw)
-        enc = guess.get("encoding") or "utf-8"
-        return raw.decode(enc, errors="ignore")
-    except:
-        return raw.decode("utf-8", errors="ignore")
-
-# -------------- 포맷별 추출기 --------------
-def extract_from_pdf(raw: bytes) -> Tuple[str, List[str]]:
-    doc = fitz.open(stream=raw, filetype="pdf")
-    text_parts, ocr_parts = [], []
-    # 본문 텍스트
-    for page in doc:
-        text_parts.append(page.get_text())
-        # 페이지 내 이미지 → OCR
-        for img in page.get_images(full=True):
-            xref = img[0]
-            try:
-                imgdict = doc.extract_image(xref)
-                ocr_parts.append(ocr_image_bytes(imgdict.get("image", b"")))
-            except:
-                pass
-    return "\n".join(text_parts).strip(), [x for x in ocr_parts if x]
-
-def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
-    d = Document(io.BytesIO(raw))
-    # 본문 텍스트
-    text = "\n".join(p.text for p in d.paragraphs)
-
-    # 이미지: related_parts에서 이미지 blob 추출
-    ocr_texts = []
-    try:
-        rel_parts = getattr(d.part, "related_parts", {})
-        for rel, part in rel_parts.items():
-            # content_type 예: 'image/png', 'image/jpeg'
-            if getattr(part, "content_type", "").startswith("image/"):
-                blob = getattr(part, "blob", b"")
-                if blob:
-                    ocr_texts.append(ocr_image_bytes(blob))
-    except:
-        pass
-    return text.strip(), [x for x in ocr_texts if x]
-
-def extract_from_pptx(raw: bytes) -> Tuple[str, List[str]]:
-    prs = Presentation(io.BytesIO(raw))
-    text_parts, ocr_parts = [], []
-    for slide in prs.slides:
-        # 본문 텍스트
-        for shape in slide.shapes:
-            if hasattr(shape, "has_text_frame") and shape.has_text_frame:
-                text_parts.append(shape.text)
-
-            # 그림(이미지) → OCR
-            try:
-                # picture shape 인 경우
-                if hasattr(shape, "image") and hasattr(shape.image, "blob"):
-                    ocr_parts.append(ocr_image_bytes(shape.image.blob))
-            except:
-                pass
-    return "\n".join(text_parts).strip(), [x for x in ocr_parts if x]
-
-def extract_from_xlsx(raw: bytes) -> Tuple[str, List[str]]:
-    wb = load_workbook(io.BytesIO(raw), data_only=True)
-    text_parts, ocr_parts = [], []
-    for ws in wb.worksheets:
-        # 셀 텍스트
-        for row in ws.iter_rows(values_only=True):
-            row_text = [str(c) for c in row if c is not None]
-            if row_text:
-                text_parts.append("\t".join(row_text))
-
-        # 이미지 (openpyxl 내부구조 의존 — 버전에 따라 다를 수 있어 try)
-        try:
-            for img in getattr(ws, "_images", []):
-                # openpyxl Image 객체는 .ref/.width 등의 메타 외에 원본 이미지 접근이 버전마다 다름
-                # 가장 호환성 높은 접근: _data() (없으면 skip)
-                if hasattr(img, "_data") and callable(img._data):
-                    ocr_parts.append(ocr_image_bytes(img._data()))
-                elif hasattr(img, "_ref") and hasattr(img._ref, "path"):
-                    with open(img._ref.path, "rb") as f:
-                        ocr_parts.append(ocr_image_bytes(f.read()))
-        except:
-            pass
-    return "\n".join(text_parts).strip(), [x for x in ocr_parts if x]
-
-def extract_from_txt(raw: bytes) -> Tuple[str, List[str]]:
-    return detect_text_encoding_and_decode(raw).strip(), []
-
-def extract_from_image(raw: bytes) -> Tuple[str, List[str]]:
-    # 이미지 파일 자체 OCR
-    return "", [ocr_image_bytes(raw)]
-
-def try_guess_image_from_bin(bin_bytes: bytes) -> bytes:
-    # HWP OLE BIN에서 간혹 PNG/JPEG 시그니처가 그대로 들어있음 → 추출 시도
-    if not bin_bytes:
-        return b""
-    sigs = [b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff"]  # PNG, JPEG
-    for sig in sigs:
-        idx = bin_bytes.find(sig)
-        if idx != -1:
-            return bin_bytes[idx:]
-    return b""
-
-def extract_from_hwp_ole(raw: bytes) -> Tuple[str, List[str]]:
-    """
-    HWP (OLE Compound). 본문 텍스트는 전용 파서가 가장 좋지만,
-    최소 구현: OLE 스트림 내 BIN/이미지 추출 후 OCR + 텍스트는 생략/보수적
-    """
-    ocr_parts, text_parts = [], []
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".hwp") as tmp:
-            tmp.write(raw); tmp.flush()
-            if not olefile.isOleFile(tmp.name):
-                return "", []
-
-            with olefile.OleFileIO(tmp.name) as ole:
-                # 텍스트: 전용 파서가 없으면 생략(또는 hwp5txt 연동 권장)
-                # 이미지는 'BinData'류 스트림에서 추출 시도
-                for entry in ole.listdir(streams=True, storages=True):
-                    # 예: ['BinData', 'Bin0001'] 형태
-                    if any("Bin" in e or "BIN" in e for e in entry):
-                        try:
-                            stream = ole.openstream(entry).read()
-                            img_bytes = try_guess_image_from_bin(stream)
-                            if img_bytes:
-                                ocr_parts.append(ocr_image_bytes(img_bytes))
-                        except:
-                            pass
-    except:
-        pass
-    return "\n".join(text_parts).strip(), [x for x in ocr_parts if x]
-
-def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
-    """
-    HWPX는 zip. 텍스트는 XML 파싱(생략 가능) / 리소스(이미지)는 /Contents/Resources/* 등에서 추출
-    """
-    text_parts, ocr_parts = [], []
-    with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-        # 1) 이미지
-        for name in zf.namelist():
-            lower = name.lower()
-            if lower.endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff")):
-                try:
-                    ocr_parts.append(ocr_image_bytes(zf.read(name)))
-                except:
-                    pass
-        # 2) 텍스트(XML) → 필요시 추가 파싱 (여기선 생략 또는 원문 XML 추출)
-        # for name in zf.namelist():
-        #     if name.endswith(".xml"):
-        #         # 간단히 원문 뽑고 싶다면:
-        #         text_parts.append(detect_text_encoding_and_decode(zf.read(name)))
-    return "\n".join(text_parts).strip(), [x for x in ocr_parts if x]
-
 
 load_dotenv()
 
 app = FastAPI()
-vision_client = vision.ImageAnnotatorClient()
 
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 os.environ.pop("VISION_KEY_PATH", None)
@@ -1296,47 +1123,33 @@ def extract_text_by_ext(local_path: str, filename: str) -> str:
 
 @app.post("/fileScan")
 async def file_scan(file: UploadFile = File(...)):
-    filename = (file.filename or "").lower()
-    ext = filename.split(".")[-1]
-    raw = await file.read()
-
-    text, ocr_list = "", []
+    """
+    하나의 업로드 엔드포인트로 다양한 문서 포맷을 받아 텍스트만 반환.
+    클라이언트: FormData에 'file' 필드로 업로드 (script.js의 extractTextFromAnyFile).
+    """
+    # 임시 저장
+    suffix = pathlib.Path(file.filename).suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        binary = await file.read()
+        tmp.write(binary)
+        tmp_path = tmp.name
 
     try:
-        if ext in ["png", "jpg", "jpeg", "bmp", "tif", "tiff", "gif", "webp"]:
-            text, ocr_list = extract_from_image(raw)
+        text = extract_text_by_ext(tmp_path, file.filename)
 
-        elif ext == "pdf":
-            text, ocr_list = extract_from_pdf(raw)
+        MAX_CHARS = 100_000
+        if len(text) > MAX_CHARS:
+            text = text[:MAX_CHARS]
 
-        elif ext == "docx":
-            text, ocr_list = extract_from_docx(raw)
-
-        elif ext in ["pptx", "ppt"]:
-            text, ocr_list = extract_from_pptx(raw)
-
-        elif ext in ["xlsx", "xls"]:
-            text, ocr_list = extract_from_xlsx(raw)
-
-        elif ext == "txt":
-            text, _ = extract_from_txt(raw)
-
-        elif ext == "hwpx":
-            text, ocr_list = extract_from_hwpx_zip(raw)
-
-        elif ext == "hwp":
-            # HWP: 텍스트는 전용 파서 필요(선택),
-            # 여기서는 최소 구현으로 이미지 OCR 우선
-            text, ocr_list = extract_from_hwp_ole(raw)
-
-        else:
-            # 몰라도 일단 바이너리를 텍스트로 시도 + 이미지 시그니처 있으면 OCR
-            text = detect_text_encoding_and_decode(raw)
+        return {"filename": file.filename, "text": text}
     except Exception as e:
-        return {"error": f"parse_error: {type(e).__name__}: {e}"}
+        return JSONResponse(status_code=400, content={"error": str(e)})
+    finally:
+        try:
+            os.remove(tmp_path)
+        except:
+            pass
 
-    ocr_text = "\n\n".join(t for t in ocr_list if t).strip()
-    return {"text": text, "ocr_text": ocr_text}
 
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):

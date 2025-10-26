@@ -81,8 +81,7 @@
                         <li><a href="grammar.html">Grammar</a></li>
                         <li><a href="honorific.html">Honorific</a></li>
                         <li><a href="translate.html">Translate</a></li>
-                        <li><a href="scan.html">Scan</a></li>
-                        <li><a href="image.html">Image Scan</a></li>
+                        <li><a href="image.html">Scan</a></li>
                         <li><a href="speech.html">Speech</a></li>
                         <li><a href="editor.html">Editor</a></li>
                     </ul>
@@ -91,55 +90,46 @@
             </div>
         </header>
 
-        <main class="main">
-            <!-- Portfolio Section -->
-            <section id="portfolio" class="portfolio section">
-                <!-- Section Title -->
-                <div class="container section-title" data-aos="fade-up">
-                    <h2>문체 변경</h2>
+        <main class="main page-wrap">
+            <div class="container section-title" data-aos="fade-up">
+                <div class="page-button">
+                    <select id="styleSelector">
+                        <option value="casual">구어체</option>
+                        <option value="formal">격식체</option>
+                        <option value="literary">문학체</option>
+                        <option value="academic">학술체</option>
+                    </select>
+                    <button onclick="applyStyle()" class="resultBtn_SC">
+                        문체 변경 ✍️
+                    </button>
+                    <button
+                        id="pdfDownloadBtn"
+                        class="resultAreaPdfDownloadBtn_SC"
+                    >
+                        💾
+                    </button>
+                </div>
+                <div class="page-inputResult">
                     <textarea
                         id="styleInput"
                         placeholder="문장을 입력하세요..."
                         class="textarea_SC"
                     ></textarea>
-                    <div style="margin-top: 10px">
-                        <select id="styleSelector">
-                            <option value="casual">구어체</option>
-                            <option value="formal">격식체</option>
-                            <option value="literary">문학체</option>
-                            <option value="academic">학술체</option>
-                        </select>
-                        <button onclick="applyStyle()" class="resultBtn_SC">
-                            스타일 적용 ✍️
-                        </button>
+                    <div class="page-arrow">
+                        <span class="arrow"></span>
                     </div>
-                    <div
-                        id="loadingSpinner"
-                        style="
-                            display: none;
-                            text-align: center;
-                            margin: 10px 0;
-                        "
-                    >
-                        <div class="spinner"></div>
-                        <p style="margin-top: 5px; color: gray">
-                            ⏳ 처리 중입니다...
-                        </p>
-                    </div>
-
-                    <div
-                        id="styleResult"
-                        class="resultArea_SC"
-                        style="margin-top: 20px"
-                    ></div>
-                    <button
-                        id="pdfDownloadBtn"
-                        class="resultBtn_SC resultAreaPdfDownloadBtn_SC"
-                    >
-                        결과를 PDF로 다운로드
-                    </button>
+                    <div id="styleResult" class="resultArea_SC"></div>
                 </div>
-            </section>
+                <div
+                    id="loadingSpinner"
+                    style="display: none; text-align: center; margin: 10px 0"
+                >
+                    <div class="spinner"></div>
+                    <p style="margin-top: 5px; color: gray">
+                        ⏳ 처리 중입니다...
+                    </p>
+                </div>
+            </div>
         </main>
         <footer id="footer" class="footer">
             <div class="container footer-top">
@@ -235,8 +225,7 @@
                             <li><a href="grammar.html">Grammar</a></li>
                             <li><a href="honorific.html">Honorific</a></li>
                             <li><a href="translate.html">Translate</a></li>
-                            <li><a href="scan.html">Scan</a></li>
-                            <li><a href="image.html">Image Scan</a></li>
+                            <li><a href="image.html">Scan</a></li>
                             <li><a href="speech.html">Speech</a></li>
                             <li><a href="editor.html">Editor</a></li>
                         </ul>
