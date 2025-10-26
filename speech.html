@@ -108,12 +108,27 @@
                                 accept="audio/*"
                                 class="pdfScanFileChooseBtn_SC"
                             />
-                            <button id="startRecord" type="button">
-                                녹음 시작
+                            <button
+                                id="startRecord"
+                                type="button"
+                                class="record-btn start"
+                            >
+                                🎙️
                             </button>
-                            <button id="stopRecord" type="button" disabled>
-                                녹음 종료
+                            <button
+                                id="stopRecord"
+                                type="button"
+                                class="record-btn stop"
+                                disabled
+                            >
+                                🛑
                             </button>
+
+                            <div
+                                id="speechArea"
+                                class="resultArea_SC"
+                                style="text-align: left"
+                            ></div>
                             <div>
                                 <label for="styleSelect">문체 선택:</label>
                                 <select id="styleSelect">
@@ -131,15 +146,6 @@
                                 >
                                     문체 변경
                                 </button>
-                                <!-- <button
-                                    id="speechRewriteBtn"
-                                    type="button"
-                                    name="action"
-                                    value="rewrite"
-                                    class="resultBtn_SC"
-                                >
-                                    첨삭
-                                </button> -->
                                 <button
                                     id="speechSummaryBtn"
                                     type="button"
