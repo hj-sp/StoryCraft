@@ -10,7 +10,7 @@ var BASE_URL =
         ? BASE_URL
         : isLocal
         ? 'http://127.0.0.1:8000'
-        : 'https://storycraft-.onrender.com';
+        : 'https://storycraft-ppxj.onrender.com';
 // : 'https://storycraft-ppxj.onrender.com';
 
 /* === [INLINE SPINNER UTILS | put this just after BASE_URL, before DOMContentLoaded] === */
