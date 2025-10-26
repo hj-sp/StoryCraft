@@ -516,6 +516,15 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
 
         elif ext == "hwpx":
             body, ocr_list = extract_from_hwpx_zip(binary)
+            if not (body and body.strip()):
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".hwpx") as f:
+                        f.write(binary)
+                        f.flush()
+                        pdf_path = libreoffice_to_pdf(f.name)
+                    body = extract_pdf_text(pdf_path)
+                except Exception as e:
+                    print("hwpx fallback failed:", e)
 
         elif ext == "hwp":
             body = extract_text_from_hwp_hwp5txt(binary)  # 없으면 빈문자열
@@ -615,9 +624,8 @@ def ocr_images_from_zip(buf: io.BytesIO, prefix: str) -> list[str]:
             )):
                 img_bytes = z.read(name)
                 if img_bytes and should_ocr(img_bytes):
-                    txt = ocr_image_bytes(img_bytes).strip()
-                    if txt:
-                        texts.append(txt)
+                    t = ocr_image_bytes(img_bytes).strip()
+                    if t: texts.append(t)
     return texts
 
 
