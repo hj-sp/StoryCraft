@@ -7623,7 +7623,11 @@ info.addEventListener('mouseleave', () => {
 function renderScanResult(mergedText) {
   const area = document.getElementById('resultArea');
   if (!area) return;
-  area.innerHTML = '';
+  area.innerHTML = `
+  <pre style="white-space: pre-wrap; word-break: break-word; margin:0;">
+    ${escapeHtml(text)}
+  </pre>
+`;
 
   const raw = (mergedText || '').toString();
   // 개행 변형까지 커버하는 분리
