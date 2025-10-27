@@ -439,10 +439,11 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
+
     if body and ocr_text:
-        return f"{body}\n\n[📷 이미지 OCR]\n{ocr_text}"
+        return f"{body}\n\n{ocr_text}"
     elif ocr_text:
-        return f"[📷 이미지 OCR]\n{ocr_text}"
+        return ocr_text
     else:
         return body
 
