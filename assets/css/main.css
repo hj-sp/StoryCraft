@@ -3,11 +3,12 @@
 }
 .page-button {
     display: flex;
-    justify-content: flex-start; /* 왼쪽 정렬 */
+    justify-content: flex-start; /* 정렬 */
     align-items: center; /* 수직 중앙 정렬 (선택사항) */
     position: relative;
     gap: 3px;
 }
+
 .page-inputResult {
   display: flex;
   align-items: flex-start; /* 입력창 상단 고정 */

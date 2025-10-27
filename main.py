@@ -446,7 +446,7 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
         # 개별 파서 실패 시에도 가능한 정보 반환
         print("parse error:", type(e).__name__, e)
 
-    # 최종 합치기 (프론트 변경 없이 text 하나로 반환)
+    # 최종 합치기
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
