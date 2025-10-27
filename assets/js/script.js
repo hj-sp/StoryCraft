@@ -10,7 +10,7 @@ var BASE_URL =
         ? BASE_URL
         : isLocal
         ? 'http://127.0.0.1:8000'
-        : 'https://storycraft-ppxj.onrender.com';
+        : 'https://storycraft-cnjn.onrender.com';
 // : 'https://storycraft-ppxj.onrender.com';
 
 /* === [INLINE SPINNER UTILS | put this just after BASE_URL, before DOMContentLoaded] === */
@@ -321,11 +321,52 @@ function restoreSelectionIfAny() {
     } catch {}
 }
 
+function placeArrowCenter() {
+  const inputWrap = document.querySelector('.page-inputResult .input-wrap');
+  const arrow = document.querySelector('.page-inputResult .page-arrow');
+  if (!inputWrap || !arrow) return;
+
+  const inputH = inputWrap.clientHeight;
+  const arrowH = arrow.clientHeight || 28;
+  const mt = Math.max(0, (inputH - arrowH) / 2);
+  arrow.style.marginTop = `${mt}px`;
+}
+
 /* === [/INLINE SPINNER UTILS] === */
 
 // DOMContentLoaded 이벤트를 사용하여 DOM이 완전히 로드된 이후에 document.getElementById로 요소를 찾도록 수정
 document.addEventListener('DOMContentLoaded', () => {
+
+    placeArrowCenter();
+    window.addEventListener('resize', placeArrowCenter);
+
+    const input = document.querySelector('.page-inputResult .input-wrap textarea');
+    
+    if (input) {
+    input.addEventListener('input', placeArrowCenter);
+  }
+
+    const resultArea = document.querySelector('.page-inputResult');
+    if (resultArea) {
+    const ro = new ResizeObserver(placeArrowCenter);
+    ro.observe(resultArea);
+  }
+
     // 버튼 클릭 이벤트 바인딩
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            searchExample();
+        });
+    }
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadMoreExamples();
+        });
+    }
     const rewriteBtn = document.getElementById('rewriteBtn');
     if (rewriteBtn) {
         rewriteBtn.addEventListener('click', mistralRewrite);
@@ -344,13 +385,30 @@ document.addEventListener('DOMContentLoaded', () => {
             expandText();
         });
     }
+    const styleBtn = document.getElementById('styleBtn');
+    if (styleBtn) {
+        styleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            applyStyle();
+        });
+    }
     const grammarBtn = document.getElementById('grammarBtn');
     if (grammarBtn) {
         grammarBtn.addEventListener('click', mistralGrammar);
     }
-    const grammarBtn2 = document.getElementById('grammarBtn2');
-    if (grammarBtn2) {
-        grammarBtn2.addEventListener('click', mistralGrammar2);
+    const honorificBtn = document.getElementById('honorificBtn');
+    if (honorificBtn) {
+        honorificBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            cohereHonorific();
+        });
+    }
+    const informalBtn = document.getElementById('informalBtn');
+    if (informalBtn) {
+        informalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            cohereInformal();
+        });
     }
     const pdfScanStyleBtn = document.getElementById('pdfScanStyleBtn');
     if (pdfScanStyleBtn) {
@@ -629,6 +687,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// (선택) 스피너 유틸
+function spin(on) {
+    const ov = document.getElementById('edit_spinner');
+    if (ov) {
+        ov.setAttribute('aria-hidden', String(!on));
+        document.documentElement.classList.toggle('is-edit-loading', !!on);
+    }
+}
+
 async function searchExample() {
     const userInput = document.getElementById('userInput').value.trim();
 
@@ -648,10 +715,11 @@ let lastExtractedText = '';
 async function loadMoreExamples() {
     const userInput = document.getElementById('userInput').value.trim();
     const container = document.getElementById('exampleContainer');
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) spinner.style.display = 'block';
+
+    spin(true); // ✅ 로딩 시작
 
     if (!userInput) {
+        spin(false); // ✅ 에러 시 로딩 해제
         alert('입력된 문장이 없습니다.');
         return;
     }
@@ -748,10 +816,9 @@ async function loadMoreExamples() {
         console.error('예문 요청 오류:', error);
         alert('❗ 예문 불러오기 중 오류 발생');
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false); // ✅ 로딩 종료
     }
 }
-
 function rebindRewriteBtn() {
     const currentBtn = document.getElementById('rewriteBtn');
     if (!currentBtn) return;
@@ -767,10 +834,11 @@ async function mistralRewrite() {
     const originalText = userInput;
 
     const outerArea = document.getElementById('resultArea');
-    const spinner = document.getElementById('loadingSpinner');
+    spin(true);
 
     if (!userInput.trim()) {
         alert('입력된 문장이 없습니다.');
+        spin(false);
         return;
     }
 
@@ -780,7 +848,6 @@ async function mistralRewrite() {
     outerArea.appendChild(resultArea);
 
     resultArea.innerHTML = '';
-    if (spinner) spinner.style.display = 'block';
 
     try {
         const response = await fetch(`${BASE_URL}/mistralRewrite`, {
@@ -798,6 +865,7 @@ async function mistralRewrite() {
         if (!data.result || data.result.trim() === '') {
             resultArea.innerHTML =
                 '<p style="color: red;">❗ 결과가 비어 있습니다.</p>';
+            spin(false);
             return;
         }
 
@@ -833,7 +901,7 @@ async function mistralRewrite() {
         resultArea.innerHTML =
             '<p style="color: red;">❗ 요청 중 오류가 발생했습니다.</p>';
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -841,8 +909,7 @@ async function changeStyle(exampleId) {
     const selectedText = document.getElementById(exampleId).innerText.trim();
     const styleRaw = document.getElementById(`${exampleId}-style`).value;
     const style = styleRaw.toLowerCase();
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) spinner.style.display = 'block';
+    spin(true);
 
     console.log('🛠 스타일 적용 요청:', { selectedText, style });
 
@@ -873,7 +940,7 @@ async function changeStyle(exampleId) {
         console.error('스타일 변경 중 오류:', error);
         alert('❗스타일 변경 요청 중 오류가 발생했습니다.');
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -881,14 +948,13 @@ async function applyStyle() {
     const text = document.getElementById('styleInput').value;
     const style = document.getElementById('styleSelector').value;
     const result = document.getElementById('styleResult');
-    const spinner = document.getElementById('loadingSpinner');
-    spinner.style.display = 'block';
+    spin(true);
 
     result.innerText = '';
 
     if (!text.trim()) {
+        spin(false);
         alert('문장을 입력해주세요.');
-        spinner.style.display = 'none';
         return;
     }
 
@@ -913,7 +979,7 @@ async function applyStyle() {
         result.innerText = '❗요청 중 오류 발생';
         console.error(error);
     } finally {
-        spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -921,8 +987,10 @@ async function summarizeText() {
     const userInput = document.getElementById('userInput').value.trim();
     const resultArea = document.getElementById('resultArea');
     if (!resultArea) return;
+    spin(true);
 
     if (!userInput) {
+        spin(false);
         alert('입력된 문장이 없습니다.');
         return;
     }
@@ -961,20 +1029,19 @@ async function summarizeText() {
     } catch (e) {
         resultArea.innerHTML = '<p>❗요약 요청 중 오류가 발생했습니다.</p>';
         console.error(e);
+    } finally {
+        spin(false);
     }
 }
 
 async function expandText() {
     const userInput = document.getElementById('userInput').value;
     const resultArea = document.getElementById('resultArea');
-    const spinner = document.getElementById('loadingSpinner');
-
-    if (spinner) spinner.style.display = 'block';
+    spin(true);
 
     if (!userInput.trim()) {
+        spin(false);
         alert('입력된 문장이 없습니다.');
-        if (spinner) spinner.style.display = 'none';
-        return;
     }
 
     try {
@@ -1009,31 +1076,28 @@ async function expandText() {
         console.error('확장 요청 중 오류:', error);
         resultArea.innerText = '❗확장 요청 중 오류가 발생했습니다.';
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
 async function mistralGrammar() {
+    spin(true);
     const userInput = document.getElementById('userInput').value;
-    const resultArea = document.getElementById('resultArea');
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) spinner.style.display = 'block';
-
-    const grammarTable = document.getElementById('grammarTable');
-    const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
-
-    if (!tbody) {
-        console.log('⚠️ tbody 요소가 없습니다. HTML 구조를 확인하세요.');
-        return;
-    }
-    while (tbody.firstChild) {
-        tbody.removeChild(tbody.firstChild);
-    }
-
     if (!userInput.trim()) {
+        spin(false);
         alert('입력된 문장이 없습니다.');
         return;
     }
+    const grammarTable = document.getElementById('grammarTable');
+    const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
+    if (!tbody) {
+        console.log('⚠️ tbody 요소가 없습니다. HTML 구조를 확인하세요.');
+        spin(false);
+        return;
+    }
+
+    const tableBody = document.querySelector('#grammarTable tbody');
+    tableBody.innerHTML = '';
 
     try {
         const response = await fetch(`${BASE_URL}/mistralGrammar`, {
@@ -1047,88 +1111,48 @@ async function mistralGrammar() {
         const data = await response.json();
         const raw = (data?.result ?? '').toString();
         if (!raw) {
-            resultArea.innerText = '⚠️ 결과가 비어 있습니다.';
+            resultArea.innerText =
+                '⚠️ Mistral AI 오류로 응답 반환이 없습니다. 다시 실행해 주세요.';
             return;
         }
         const text = data.result;
 
-        if (text) {
-            const lines = text
-                .split(/\n+/)
-                .map((line) => line.trim())
-                .filter((line) => line.length > 0); // 여기서 빈 줄 제거됨
+        // ---로 구분된 블록 단위로 나누기
+        const blocks = text
+            .split(/---+/)
+            .map((block) => block.trim())
+            .filter(Boolean);
 
+        for (const block of blocks) {
+            const wrong = (block.match(/❌(.*)/) || [])[1]?.trim() || '';
+            const correct = (block.match(/✅(.*)/) || [])[1]?.trim() || '';
+            const ruleLines = [...block.matchAll(/📖(.*)/g)].map((m) =>
+                m[1].trim()
+            );
+            const explanation =
+                (block.match(/✍️([\s\S]*)/) || [])[1]?.trim() || '';
+
+            // 수정할 부분 없을 때만 종료
             if (
-                lines.length >= 2 &&
-                (/예시/.test(lines[0]) || /교정문/.test(lines[0])) &&
-                (/예시/.test(lines[1]) || /규범/.test(lines[1]))
+                ruleLines.length === 0 &&
+                !explanation.trim() &&
+                !wrong &&
+                !correct
             ) {
-                lines.splice(0, 2);
+                alert('문법 교정할 부분이 없습니다.');
+                spin(false);
+                return;
             }
 
-            for (let i = 0; i < lines.length; i++) {
-                lines[i] = lines[i]
-                    .replace(/\s*\(?\s*예시\s*교정문\s*\)?\.?$/g, '')
-                    .replace(/^\s*예시\s*규범.*$/g, '')
-                    .trim();
-            }
-            for (let i = lines.length - 1; i >= 0; i--) {
-                if (!lines[i]) lines.splice(i, 1);
-            }
+            tag_delete = textDiff(wrong, correct);
+            del_tag_delete = tag_delete.replace(/<del[^>]*>.*?<\/del>/g, '');
+            ins_tag_delete = tag_delete.replace(/<ins[^>]*>.*?<\/ins>/g, '');
 
-            const table = document.getElementById('grammarTable');
+            const td1 = document.createElement('td');
+            td1.innerHTML = `❌${ins_tag_delete}<br>✅${del_tag_delete}`;
 
-            function removeIcons(text) {
-                // 이모지 제거
-                return text.replace(/^[^\w가-힣]+/, '').trim();
-            }
-
-            let hasError = false; // 틀린 문장이 하나라도 발견되었음을 기록
-
-            for (let i = 0; i + 3 < lines.length; i += 4) {
-                const cleanLine1 = removeIcons(lines[i]).replace(
-                    /\s*\(?\s*예시\s*교정문\s*\)?\.?$/g,
-                    ''
-                );
-                const cleanLine2 = removeIcons(lines[i + 1]).replace(
-                    /^\s*예시\s*규범.*$/g,
-                    ''
-                );
-                const cleanLine3 = removeIcons(lines[i + 2]);
-                const cleanLine4 = removeIcons(lines[i + 3]);
-
-                if (
-                    /예시|규범/.test(cleanLine1) ||
-                    /예시|규범/.test(cleanLine2)
-                ) {
-                    continue;
-                }
-
-                if (!cleanLine1 || !cleanLine2 || cleanLine1 === cleanLine2) {
-                    continue;
-                }
-
-                hasError = true;
-
-                const row = document.createElement('tr');
-                const tdLeft = document.createElement('td');
-                const tdRight = document.createElement('td');
-                tdRight.classList.add('right');
-
-                tag_delete = textDiff(cleanLine1, cleanLine2);
-                del_tag_delete = tag_delete.replace(
-                    /<del[^>]*>.*?<\/del>/g,
-                    ''
-                );
-                ins_tag_delete = tag_delete.replace(
-                    /<ins[^>]*>.*?<\/ins>/g,
-                    ''
-                );
-
-                tdLeft.innerHTML = `<span class="sentence">❌${ins_tag_delete}<br>✅${del_tag_delete}</span>`;
-
-                const style = document.createElement('style');
-                style.innerHTML = `
+            const style = document.createElement('style');
+            style.innerHTML = `
                     del {
                         text-decoration: line-through;
                         background: #ff9999 !important
@@ -1137,76 +1161,67 @@ async function mistralGrammar() {
                         background: #81ff81 !important
                     }
                 `;
-                document.head.appendChild(style);
+            document.head.appendChild(style);
 
-                // tdRight는 기존처럼 규칙 설명 출력
-                tdRight.textContent = '📖 ' + cleanLine3 + '\n✍️ ' + cleanLine4;
+            const td2 = document.createElement('td');
+            td2.innerHTML =
+                ruleLines.map((r) => `📖${r}`).join('<br>') +
+                `<br>✍️${explanation}`;
 
-                row.appendChild(tdLeft);
-                row.appendChild(tdRight);
-                tbody.appendChild(row);
+            const tr = document.createElement('tr');
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tableBody.appendChild(tr);
 
-                // 교정문 복사 버튼
-                const copyBtn = document.createElement('button');
-                copyBtn.innerText = '📋';
-                copyBtn.title = '교정문 복사';
-                copyBtn.style.border = 'none';
-                copyBtn.style.background = 'transparent';
-                copyBtn.style.cursor = 'pointer';
-                copyBtn.style.fontSize = '16px';
-                copyBtn.style.padding = '0';
-                copyBtn.style.margin = '0';
-                copyBtn.style.display = 'inline'; // 핵심: 인라인으로 붙이기
+            // 교정문 복사 버튼
+            const copyBtn = document.createElement('button');
+            copyBtn.innerText = '📋';
+            copyBtn.title = '교정문 복사';
+            copyBtn.style.border = 'none';
+            copyBtn.style.background = 'transparent';
+            copyBtn.style.cursor = 'pointer';
+            copyBtn.style.fontSize = '16px';
+            copyBtn.style.padding = '0';
+            copyBtn.style.margin = '0';
+            copyBtn.style.display = 'inline'; // 핵심: 인라인으로 붙이기
 
-                copyBtn.onclick = () => {
-                    navigator.clipboard.writeText(cleanLine2.trim());
-                    copyBtn.innerText = '✅';
-                    setTimeout(() => (copyBtn.innerText = '📋'), 1000);
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(correct.trim());
+                copyBtn.innerText = '✅';
+                setTimeout(() => (copyBtn.innerText = '📋'), 1000);
+            };
+            td1.appendChild(copyBtn);
+
+            const resultArea = document.getElementById('resultArea');
+            const pdfBtn = document.getElementById('pdfDownloadBtn');
+            if (pdfBtn) {
+                pdfBtn.onclick = function () {
+                    if (!resultArea) return;
+
+                    // 📋 이모티콘 제거: HTML 문자열에서 제거
+                    const cloned = resultArea.cloneNode(true); // 원본 손상 방지
+                    cloned.querySelectorAll('*').forEach((el) => {
+                        if (el.childNodes.length) {
+                            el.childNodes.forEach((node) => {
+                                if (node.nodeType === Node.TEXT_NODE) {
+                                    node.textContent = node.textContent.replace(
+                                        /📋/g,
+                                        ''
+                                    );
+                                }
+                            });
+                        }
+                    });
+
+                    // HTML 그대로 PDF로 저장
+                    saveAsPDF(cloned.innerHTML, '문법 교정.pdf');
                 };
-
-                tdLeft.appendChild(copyBtn);
-
-                const pdfBtn = document.getElementById('pdfDownloadBtn');
-                if (pdfBtn) {
-                    pdfBtn.onclick = function () {
-                        if (!resultArea) return;
-
-                        // 📋 이모티콘 제거: HTML 문자열에서 제거
-                        const cloned = resultArea.cloneNode(true); // 원본 손상 방지
-                        cloned.querySelectorAll('*').forEach((el) => {
-                            if (el.childNodes.length) {
-                                el.childNodes.forEach((node) => {
-                                    if (node.nodeType === Node.TEXT_NODE) {
-                                        node.textContent =
-                                            node.textContent.replace(/📋/g, '');
-                                    }
-                                });
-                            }
-                        });
-
-                        // HTML 그대로 PDF로 저장
-                        saveAsPDF(cloned.innerHTML, '문법 교정.pdf');
-                    };
-                }
             }
-
-            if (!hasError) {
-                alert('🎉 틀린 부분이 없습니다.');
-            }
-        } else if (data.error) {
-            resultArea.innerText = `⚠️ 오류: ${data.error}\n\n🔍 상세 내용: ${
-                data.detail || '없음'
-            }`;
-            console.error('에러 응답 내용:', data);
-        } else {
-            resultArea.innerText = '⚠️ 알 수 없는 오류가 발생했습니다.';
-            console.warn('예상치 못한 응답 구조:', data);
         }
-    } catch (error) {
-        resultArea.innerText = '❗요청 중 오류가 발생했습니다.' + error;
-        console.error('Fetch error:', error);
+    } catch (err) {
+        console.error('표 데이터 로드 실패:', err);
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -1221,11 +1236,11 @@ function textDiff(text1, text2) {
 async function cohereHonorific() {
     const userInput = document.getElementById('userInput').value;
     const resultArea = document.getElementById('resultArea');
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) spinner.style.display = 'block';
     resultArea.innerHTML = ''; // HTML 내용을 지움
+    spin(true);
 
     if (!userInput.trim()) {
+        spin(false);
         resultArea.innerText = '입력된 문장이 없습니다.';
         return;
     }
@@ -1262,15 +1277,14 @@ async function cohereHonorific() {
         resultArea.innerText = '❗요청 중 오류가 발생했습니다.' + error;
         console.log('Fetch error:', error);
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
 async function cohereInformal() {
     const userInput = document.getElementById('userInput').value;
     const resultArea = document.getElementById('resultArea');
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) spinner.style.display = 'block';
+    spin(true);
     resultArea.innerHTML = ''; // HTML 내용을 지움
 
     if (!userInput.trim()) {
@@ -1310,7 +1324,7 @@ async function cohereInformal() {
         resultArea.innerText = '❗요청 중 오류가 발생했습니다.' + error;
         console.log('Fetch error:', error);
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -1319,11 +1333,11 @@ async function applyTranslation() {
     const sourceLang = document.getElementById('sourceSelector').value;
     const targetLang = document.getElementById('targetSelector').value;
     const resultBox = document.getElementById('translateResult');
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) spinner.style.display = 'block';
     resultBox.innerText = '';
+    spin(true);
 
     if (!text) {
+        spin(false);
         alert('번역할 문장을 입력해주세요.');
         return;
     }
@@ -1362,7 +1376,7 @@ async function applyTranslation() {
         console.error('번역 요청 중 오류:', err);
         resultBox.innerText = '❗ 번역 중 오류가 발생했습니다.';
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -1422,7 +1436,7 @@ function getSelectedFile() {
 
 // 이미지 파일 여부 판별
 function isImageFile(file) {
-  return /^image\//.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name);
+    return /^image\//.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name);
 }
 
 async function handlePdfScanAndProcess({
@@ -1451,13 +1465,7 @@ async function handlePdfScanAndProcess({
         window.lastExtractedText = extractedText;
     }
 
-    const spinner = document.getElementById('loadingSpinner');
-    if (!spinner || !resultArea) {
-        console.error('❗ spinner 또는 resultArea 요소가 없습니다.');
-        return;
-    }
-
-    spinner.style.display = 'block';
+    spin(true);
 
     const formData = new FormData();
 
@@ -1489,7 +1497,7 @@ async function handlePdfScanAndProcess({
             lastExtractedText = extractedText;
         } else {
             alert('문서를 업로드하거나 텍스트를 먼저 추출해주세요.');
-            spinner.style.display = 'none';
+            spin(false);
             return;
         }
 
@@ -1569,25 +1577,42 @@ async function handlePdfScanAndProcess({
         resultArea.innerHTML = '';
         resultArea.appendChild(errorBox);
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
 async function pdfScanGrammar() {
     const file = getSelectedFile();
-    const grammarBox = document.getElementById('grammarBox');
-    const grammarTable = document.getElementById('grammarTable');
-    const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '0'; // 실행 중 패딩 0 적용
     const resultArea =
         document.getElementById('resultArea') ||
         document.getElementById('ocrResult');
-    const spinner = document.getElementById('loadingSpinner');
+    resultArea.innerHTML = '';
 
-    // 초기화
-    if (tbody) while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-    if (resultArea) resultArea.textContent = '';
-    if (grammarBox) grammarBox.style.display = 'none';
-    if (spinner) spinner.style.display = 'block';
+    // ✅ 기존 표가 있으면 제거 (중복 방지)
+    const oldBox = document.getElementById('grammarBox');
+    if (oldBox) oldBox.remove();
+
+    // ✅ 새로 생성
+    const grammarBox = document.createElement('div');
+    grammarBox.id = 'grammarBox';
+    grammarBox.innerHTML = `
+        <table id="grammarTable">
+            <thead>
+                <tr>
+                    <th>원문 & 교정문</th>
+                    <th>관련 규범 & 설명</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    `;
+
+    ocrResult.appendChild(grammarBox);
+    grammarBox.style.display = 'block';
+
+    spin(true);
 
     // 0) 웜업(콜드스타트/프리플라이트 완화용)
     try {
@@ -1624,7 +1649,7 @@ async function pdfScanGrammar() {
     }
 
     if (!sourceText) {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
         alert(
             '📄 PDF를 업로드하거나 📷 이미지를 스캔하여 텍스트를 먼저 추출해주세요.'
         );
@@ -1655,46 +1680,58 @@ async function pdfScanGrammar() {
 
         const data = await resp.json();
         const raw = (data.result || '').toString();
-        const lines = raw
-            .split(/\n+/)
-            .map((s) => s.trim())
+        if (!raw) {
+            resultArea.innerText =
+                '⚠️ Mistral AI 오류로 응답 반환이 없습니다. 다시 실행해 주세요.';
+            return;
+        }
+        const text = data.result;
+
+        // ---로 구분된 블록 단위로 나누기
+        const blocks = text
+            .split(/---+/)
+            .map((block) => block.trim())
             .filter(Boolean);
-        const removeIcons = (s) => s.replace(/^[^\w가-힣]+/, '').trim();
 
-        let hasError = false;
-        const correctedOnly = [];
+        const grammarTable = document.getElementById('grammarTable');
+        const tbody = grammarTable ? grammarTable.querySelector('tbody') : null;
+        if (!tbody) {
+            console.log('⚠️ tbody 요소가 없습니다. HTML 구조를 확인하세요.');
+            spin(false);
+            return;
+        }
+        const tableBody = document.querySelector('#grammarTable tbody');
 
-        for (let i = 0; i < lines.length; i += 4) {
-            const cleanLine1 = removeIcons(lines[i] || '');
-            const cleanLine2 = removeIcons(lines[i + 1] || '');
-            const rule1 = lines[i + 2] || '';
-            const rule2 = lines[i + 3] || '';
-            if (!cleanLine1 && !cleanLine2) continue;
-            if (cleanLine1 === cleanLine2) continue;
+        for (const block of blocks) {
+            const wrong = (block.match(/❌(.*)/) || [])[1]?.trim() || '';
+            const correct = (block.match(/✅(.*)/) || [])[1]?.trim() || '';
+            const ruleLines = [...block.matchAll(/📖(.*)/g)].map((m) =>
+                m[1].trim()
+            );
+            const explanation =
+                (block.match(/✍️([\s\S]*)/) || [])[1]?.trim() || '';
 
-            hasError = true;
-            correctedOnly.push(cleanLine2);
+            // 수정할 부분 없을 때만 종료
+            if (
+                ruleLines.length === 0 &&
+                !explanation.trim() &&
+                !wrong &&
+                !correct
+            ) {
+                alert('문법 교정할 부분이 없습니다.');
+                spin(false);
+                return;
+            }
 
-            if (tbody) {
-                const row = document.createElement('tr');
-                const tdLeft = document.createElement('td');
-                const tdRight = document.createElement('td');
-                tdRight.classList.add('right');
+            tag_delete = textDiff(wrong, correct);
+            del_tag_delete = tag_delete.replace(/<del[^>]*>.*?<\/del>/g, '');
+            ins_tag_delete = tag_delete.replace(/<ins[^>]*>.*?<\/ins>/g, '');
 
-                // 원문/교정문
-                tag_delete = textDiff(cleanLine1, cleanLine2);
-                del_tag_delete = tag_delete.replace(
-                    /<del[^>]*>.*?<\/del>/g,
-                    ''
-                );
-                ins_tag_delete = tag_delete.replace(
-                    /<ins[^>]*>.*?<\/ins>/g,
-                    ''
-                );
+            const td1 = document.createElement('td');
+            td1.innerHTML = `❌${ins_tag_delete}<br>✅${del_tag_delete}`;
 
-                tdLeft.innerHTML = `<span class="sentence">❌${ins_tag_delete}<br>✅${del_tag_delete}</span>`;
-                const style = document.createElement('style');
-                style.innerHTML = `
+            const style = document.createElement('style');
+            style.innerHTML = `
                     del {
                         text-decoration: line-through;
                         background: #ff9999 !important
@@ -1703,84 +1740,80 @@ async function pdfScanGrammar() {
                         background: #81ff81 !important
                     }
                 `;
-                document.head.appendChild(style);
-                // 규칙/설명
-                tdRight.textContent = `${rule1}\n${rule2}`;
+            document.head.appendChild(style);
 
-                // 복사 버튼
-                const copyBtn = document.createElement('button');
-                copyBtn.innerText = '📋';
-                copyBtn.title = '교정문 복사';
-                copyBtn.style =
-                    'border:none;background:transparent;cursor:pointer;font-size:16px;';
-                copyBtn.onclick = () => {
-                    navigator.clipboard.writeText(cleanLine2.trim());
-                    copyBtn.innerText = '✅';
-                    setTimeout(() => (copyBtn.innerText = '📋'), 900);
+            const td2 = document.createElement('td');
+            td2.innerHTML =
+                ruleLines.map((r) => `📖${r}`).join('<br>') +
+                `<br>✍️${explanation}`;
+
+            const tr = document.createElement('tr');
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tableBody.appendChild(tr);
+
+            // 교정문 복사 버튼
+            const copyBtn = document.createElement('button');
+            copyBtn.innerText = '📋';
+            copyBtn.title = '교정문 복사';
+            copyBtn.style.border = 'none';
+            copyBtn.style.background = 'transparent';
+            copyBtn.style.cursor = 'pointer';
+            copyBtn.style.fontSize = '16px';
+            copyBtn.style.padding = '0';
+            copyBtn.style.margin = '0';
+            copyBtn.style.display = 'inline'; // 핵심: 인라인으로 붙이기
+
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(correct.trim());
+                copyBtn.innerText = '✅';
+                setTimeout(() => (copyBtn.innerText = '📋'), 1000);
+            };
+            td1.appendChild(copyBtn);
+
+            const pdfBtn = document.getElementById('pdfDownloadBtn');
+            if (pdfBtn) {
+                pdfBtn.onclick = function () {
+                    if (!resultArea) return;
+
+                    // 📋 이모티콘 제거: HTML 문자열에서 제거
+                    const cloned = resultArea.cloneNode(true); // 원본 손상 방지
+                    cloned.querySelectorAll('*').forEach((el) => {
+                        if (el.childNodes.length) {
+                            el.childNodes.forEach((node) => {
+                                if (node.nodeType === Node.TEXT_NODE) {
+                                    node.textContent = node.textContent.replace(
+                                        /📋/g,
+                                        ''
+                                    );
+                                }
+                            });
+                        }
+                    });
+
+                    // HTML 그대로 PDF로 저장
+                    saveAsPDF(cloned.innerHTML, '문법 교정.pdf');
                 };
-
-                tdLeft.appendChild(copyBtn);
-                row.appendChild(tdLeft);
-                row.appendChild(tdRight);
-                tbody.appendChild(row);
             }
-        }
-
-        // 표 + 교정문만 결과 영역에 출력
-        /* if (grammarBox) grammarBox.style.display = 'block';
-    if (resultArea) {
-      const out = correctedOnly.length ? correctedOnly.join('\n') : '[틀린 부분이 없거나 교정 결과가 비어 있습니다]';
-      const pre = document.createElement('pre');
-      pre.style.whiteSpace = 'pre-wrap';
-      pre.style.margin = '0';
-      pre.textContent = out;
-      resultArea.innerHTML = '';
-      resultArea.appendChild(pre);
-    }*/
-
-        if (grammarBox && tbody && tbody.children.length > 0) {
-            grammarBox.style.display = 'block';
-            if (resultArea) resultArea.style.display = 'none';
-        }
-
-        if (!hasError) alert('🎉 틀린 부분이 없습니다.');
-
-        // PDF 저장 버튼 리바인딩
-        const pdfBtn = document.getElementById('pdfDownloadBtn');
-        if (pdfBtn) {
-            const newBtn = pdfBtn.cloneNode(true);
-            pdfBtn.replaceWith(newBtn);
-            newBtn.style.display = 'inline-block';
-            newBtn.addEventListener('click', () =>
-                saveAsPDF(grammarBox || grammarTable, '문법 교정.pdf')
-            );
         }
     } catch (e) {
         console.error('문법 교정 실패:', e);
         // CORS처럼 보이는 경우: 프록시(413/502 등)일 가능성이 큼
         if (resultArea) {
-            resultArea.style.display = 'block';
             resultArea.textContent = String(e).includes('HTTP 413')
                 ? '⚠️ 텍스트가 너무 길어 일부만 보내 주세요.'
                 : String(e).includes('HTTP 502')
                 ? '⚠️ 서버가 잠시 응답하지 않았습니다. 잠시 후 다시 시도해주세요.'
                 : '❌ 문법 교정 중 오류가 발생했습니다.';
         }
-        if (grammarBox) grammarBox.style.display = 'none';
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
 async function pdfScanStyle() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     const style = document.getElementById('styleSelect').value;
 
@@ -1793,14 +1826,8 @@ async function pdfScanStyle() {
 }
 
 async function pdfScanRewrite() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'mistralRewrite',
@@ -1810,14 +1837,8 @@ async function pdfScanRewrite() {
 }
 
 async function pdfScanSummary() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'summary',
@@ -1826,14 +1847,8 @@ async function pdfScanSummary() {
 }
 
 async function pdfScanExpand() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'expand',
@@ -1842,14 +1857,8 @@ async function pdfScanExpand() {
 }
 
 async function pdfScanHonorific() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'cohereHonorific',
@@ -1858,14 +1867,8 @@ async function pdfScanHonorific() {
 }
 
 async function pdfScanInformal() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     await handlePdfScanAndProcess({
         apiEndpoint: 'cohereInformal',
@@ -1874,14 +1877,8 @@ async function pdfScanInformal() {
 }
 
 async function pdfScanTranslate() {
-    const grammarBox = document.getElementById('grammarBox');
-    if (grammarBox) {
-        grammarBox.style.display = 'none';
-        const resultArea =
-            document.getElementById('resultArea') ||
-            document.getElementById('ocrResult');
-        resultArea.style.display = 'block';
-    }
+    const ocrResult = document.getElementById('ocrResult');
+    ocrResult.style.padding = '1rem'; // 실행 중 1rem 적용 (기존 resultArea 패딩)
 
     const sourceLang = document.getElementById('sourceSelector').value;
     const targetLang = document.getElementById('targetSelector').value;
@@ -2004,7 +2001,6 @@ function saveAsPDF(content, filename = 'converted.pdf') {
 }
 
 async function performOCR() {
-    const spinner = document.getElementById('loadingSpinner');
     const resultArea =
         document.getElementById('ocrResult') ||
         document.getElementById('resultArea');
@@ -2013,7 +2009,7 @@ async function performOCR() {
     // 초기화
     if (grammarBox) grammarBox.style.display = 'none';
     if (resultArea) resultArea.textContent = '';
-    if (spinner) spinner.style.display = 'block';
+    spin(true);
 
     // 0) 웜업(콜드스타트/프리플라이트 완화)
     try {
@@ -2051,6 +2047,7 @@ async function performOCR() {
             // 파일 없이도 직전 스캔 결과를 재활용(이미지든 문서든 동일)
             extractedText = window.lastExtractedText;
         } else {
+            spin(false);
             alert('이미지 또는 문서를 먼저 업로드해 주세요.');
             return;
         }
@@ -2064,7 +2061,7 @@ async function performOCR() {
         console.error('❌ 스캔 오류:', err);
         alert(`스캔 오류: ${err.message || err}`);
     } finally {
-        if (spinner) spinner.style.display = 'none';
+        spin(false);
     }
 }
 
@@ -2139,6 +2136,7 @@ async function speechStyle(file = null) {
 
     const resultArea = document.getElementById('resultArea');
     const style = document.getElementById('styleSelect').value;
+    spin(true);
 
     try {
         // 음성 → 텍스트 변환
@@ -2164,6 +2162,8 @@ async function speechStyle(file = null) {
     } catch (err) {
         alert('speechStyle 실패: ' + err.message);
         console.error(err);
+    } finally {
+        spin(false);
     }
 }
 
@@ -2176,6 +2176,7 @@ async function speechRewrite() {
     const resultArea = document.getElementById('resultArea');
     const fileInput = document.getElementById('audioFile');
     const file = fileInput ? fileInput.files[0] : null;
+    spin(true);
 
     const formData = new FormData();
     if (file) formData.append('audio', file);
@@ -2213,10 +2214,13 @@ async function speechRewrite() {
         alert('오디오에서 텍스트 추출 실패: ' + err.message);
         console.log(err.message);
         return;
+    } finally {
+        spin(false);
     }
 }
 
 async function speechSummary(file = null) {
+    spin(true);
     try {
         const audio_text = await getSpeechText(file);
 
@@ -2238,10 +2242,13 @@ async function speechSummary(file = null) {
         }
     } catch (err) {
         alert('speechSummary 실패: ' + err.message);
+    } finally {
+        spin(false);
     }
 }
 
 async function speechExpand(file = null) {
+    spin(true);
     try {
         const audio_text = await getSpeechText(file);
 
@@ -2263,10 +2270,13 @@ async function speechExpand(file = null) {
         }
     } catch (err) {
         alert('speechExpand 실패: ' + err.message);
+    } finally {
+        spin(false);
     }
 }
 
 async function speechHonorific(file = null) {
+    spin(true);
     try {
         const audio_text = await getSpeechText(file);
 
@@ -2288,11 +2298,14 @@ async function speechHonorific(file = null) {
         }
     } catch (err) {
         alert('speechHonorific 실패: ' + err.message);
+    } finally {
+        spin(false);
     }
 }
 
 // 반말 변환
 async function speechInformal(file = null) {
+    spin(true);
     try {
         const audio_text = await getSpeechText(file);
 
@@ -2314,11 +2327,14 @@ async function speechInformal(file = null) {
         }
     } catch (err) {
         alert('speechInformal 실패: ' + err.message);
+    } finally {
+        spin(false);
     }
 }
 
 // 번역
 async function speechTranslate(file = null) {
+    spin(true);
     try {
         const audio_text = await getSpeechText(file);
 
@@ -2347,6 +2363,8 @@ async function speechTranslate(file = null) {
         }
     } catch (err) {
         alert('speechTranslate 실패: ' + err.message);
+    } finally {
+        spin(false);
     }
 }
 
@@ -3196,15 +3214,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const textarea = document.getElementById('imagePromptText');
         if (textarea) {
             textarea.value = ''; // 텍스트 지우기
-        }
-    }
-
-    // (선택) 스피너 유틸
-    function spin(on) {
-        const ov = document.getElementById('edit_spinner');
-        if (ov) {
-            ov.setAttribute('aria-hidden', String(!on));
-            document.documentElement.classList.toggle('is-edit-loading', !!on);
         }
     }
 
@@ -7617,82 +7626,91 @@ info.addEventListener('mouseleave', () => {
         tooltip = null;
     }
 });
-
-
 // 파일 속 이미지 추출
 function renderScanResult(mergedText) {
-  const area = document.getElementById('resultArea');
-  if (!area) return;
-  area.innerHTML = `
+    const area = document.getElementById('resultArea');
+    if (!area) return;
+    area.innerHTML = `
   <pre style="white-space: pre-wrap; word-break: break-word; margin:0;">
     ${escapeHtml(text)}
   </pre>
 `;
 
-  const raw = (mergedText || '').toString();
-  // 개행 변형까지 커버하는 분리
-  const markerRe = /\n*\[📷 이미지 OCR\]\n*/;
-  const parts = raw.split(markerRe);
-  const bodyText = (parts[0] || '').trim();
-  const imgText  = (parts[1] || '').trim();
+    const raw = (mergedText || '').toString();
+    // 개행 변형까지 커버하는 분리
+    const markerRe = /\n*\[📷 이미지 OCR\]\n*/;
+    const parts = raw.split(markerRe);
+    const bodyText = (parts[0] || '').trim();
+    const imgText = (parts[1] || '').trim();
 
-  const sec = (title, text) => `
+    const sec = (title, text) => `
     <section class="sc-block">
       <h3 style="margin:12px 0 8px;">${title}</h3>
-      <pre style="white-space:pre-wrap;word-break:break-word;margin:0;">${escapeHtml(text)}</pre>
+      <pre style="white-space:pre-wrap;word-break:break-word;margin:0;">${escapeHtml(
+          text
+      )}</pre>
     </section>`;
 
-  if (bodyText) area.insertAdjacentHTML('beforeend', sec('본문 텍스트', bodyText));
-  if (imgText)  area.insertAdjacentHTML('beforeend', sec('📷 이미지 OCR', imgText));
-  if (!bodyText && !imgText) area.textContent = '텍스트를 추출하지 못했습니다.';
+    if (bodyText)
+        area.insertAdjacentHTML('beforeend', sec('본문 텍스트', bodyText));
+    if (imgText)
+        area.insertAdjacentHTML('beforeend', sec('📷 이미지 OCR', imgText));
+    if (!bodyText && !imgText)
+        area.textContent = '텍스트를 추출하지 못했습니다.';
 
-  // 디버그(배포 때 일시적으로 켜 두면 좋음)
-  console.debug('[fileScan:text]', raw.slice(0, 400));
+    // 디버그(배포 때 일시적으로 켜 두면 좋음)
+    console.debug('[fileScan:text]', raw.slice(0, 400));
 }
 
 function escapeHtml(s) {
-  return (s || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    return (s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
-
 
 // 파일 업로드 시 자동 추출 & 렌더
 document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('fileAny');
-  const spinner = document.getElementById('loadingSpinner');
-  const area = document.getElementById('resultArea');
-  if (!input || !area) return;
+    const input = document.getElementById('fileAny');
+    const spinner = document.getElementById('loadingSpinner');
+    const area = document.getElementById('resultArea');
+    if (!input || !area) return;
 
-  input.addEventListener('change', async () => {
-    const file = getSelectedFile && getSelectedFile();
-    if (!file) return;
+    input.addEventListener('change', async () => {
+        const file = getSelectedFile && getSelectedFile();
+        if (!file) return;
 
-    // 스피너 ON
-    if (spinner) spinner.style.display = 'block';
-    area.innerHTML = '';
+        // 스피너 ON
+        if (spinner) spinner.style.display = 'block';
+        area.innerHTML = '';
 
-    try {
-      let text;
-      if (isImageFile && isImageFile(file)) {
-        // 이미지 단일 파일은 visionOCR 사용
-        const fd = new FormData();
-        fd.append('image', file);
-        const res = await fetch(`${BASE_URL}/visionOCR`, { method: 'POST', body: fd });
-        if (!res.ok) throw new Error('visionOCR 실패: ' + res.status);
-        const js = await res.json();
-        text = (js.text || js.result || '').toString();
-      } else {
-        // 문서 계열은 /fileScan (본문 + 이미지OCR 합쳐 내려옴)
-        text = await extractTextFromAnyFile(file); // 이미 구현됨
-      }
-      window.lastExtractedText = text;
-      renderScanResult(text);
-    } catch (e) {
-      console.error(e);
-      area.textContent = '❗ 처리 중 오류가 발생했습니다.';
-    } finally {
-      if (spinner) spinner.style.display = 'none';
-    }
-  });
+        try {
+            let text;
+            if (isImageFile && isImageFile(file)) {
+                // 이미지 단일 파일은 visionOCR 사용
+                const fd = new FormData();
+                fd.append('image', file);
+                const res = await fetch(`${BASE_URL}/visionOCR`, {
+                    method: 'POST',
+                    body: fd,
+                });
+                if (!res.ok) throw new Error('visionOCR 실패: ' + res.status);
+                const js = await res.json();
+                text = (js.text || js.result || '').toString();
+            } else {
+                // 문서 계열은 /fileScan (본문 + 이미지OCR 합쳐 내려옴)
+                text = await extractTextFromAnyFile(file); // 이미 구현됨
+            }
+            window.lastExtractedText = text;
+            renderScanResult(text);
+        } catch (e) {
+            console.error(e);
+            area.textContent = '❗ 처리 중 오류가 발생했습니다.';
+        } finally {
+            if (spinner) spinner.style.display = 'none';
+        }
+    });
 });
+

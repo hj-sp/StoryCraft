@@ -91,58 +91,73 @@
         </header>
 
         <main class="main page-wrap">
-  <div class="container section-title" data-aos="fade-up">
-    <div class="container">
-
-      <div class="page-inputResult">
-        <!-- 입력 영역 -->
-        <div class="input-wrap">
-          <textarea
-            id="userInput"
-            placeholder="여기에 글을 입력하세요..."
-            class="textarea_SC"
-          ></textarea>
-
-          <!-- 입력창 우하단: 버튼 클러스터(심플 스타일) -->
-          <div class="btn-cluster">
-            <button id="rewriteBtn" class="floating-btn" onclick="mistralRewrite()" aria-label="재작성하기">
-               재작성하기
-            </button>
-            <button id="summaryBtn" class="floating-btn" onclick="mistralSummary()" aria-label="요약하기">
-               요약하기
-            </button>
-            <button id="expandBtn" class="floating-btn" onclick="mistralExpand()" aria-label="확장하기">
-               확장하기
-            </button>
-          </div>
-        </div>
-
-        <!-- 중앙 화살표 -->
-        <div class="page-arrow"><span class="arrow"></span></div>
-
-        <!-- 결과 영역 -->
-        <div class="result-wrap">
-          <div id="resultArea" class="resultArea_SC"></div>
-
-          <!-- 결과창 우하단: 다운로드 -->
-          <button
-            id="pdfDownloadBtn"
-            class="floating-icon"
-            title="결과 다운로드"
-            aria-label="결과 다운로드"
-          >💾</button>
-        </div>
-      </div>
-
-      <!-- 로딩 -->
-      <div id="loadingSpinner" style="display:none; text-align:center; margin:10px 0;" aria-live="polite">
-        ⏳ 처리 중입니다...
-      </div>
-
-    </div>
-  </div>
-</main>
-
+            <div class="container section-title" data-aos="fade-up">
+                <div class="container">
+                    <div class="page-inputResult">
+                        <div class="input-wrap">
+                            <textarea
+                                id="userInput"
+                                placeholder="여기에 글을 입력하세요..."
+                                class="textarea_SC"
+                            ></textarea>
+                            <div class="btn-cluster">
+                                <button
+                                    id="rewriteBtn"
+                                    class="floating-btn"
+                                    aria-label="재작성하기"
+                                >
+                                    재작성하기
+                                </button>
+                                <button
+                                    id="summaryBtn"
+                                    class="floating-btn"
+                                    aria-label="요약하기"
+                                >
+                                    요약하기
+                                </button>
+                                <button
+                                    id="expandBtn"
+                                    class="floating-btn"
+                                    aria-label="확장하기"
+                                >
+                                    확장하기
+                                </button>
+                            </div>
+                        </div>
+                        <div class="page-arrow">
+                            <span class="arrow"></span>
+                        </div>
+                        <div class="result-wrap">
+                            <div id="resultArea" class="resultArea_SC"></div>
+                            <button
+                                id="pdfDownloadBtn"
+                                class="floating-icon"
+                                title="결과 다운로드"
+                                aria-label="결과 다운로드"
+                            >
+                                💾
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        id="edit_spinner"
+                        class="edit_spinner"
+                        aria-hidden="true"
+                    >
+                        <div class="edit_spinner__backdrop"></div>
+                        <div
+                            class="edit_spinner__center"
+                            role="status"
+                            aria-live="polite"
+                            aria-label="처리 중"
+                        >
+                            <div class="edit_spinner__ring"></div>
+                            <div class="edit_spinner__label">처리 중…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
 
         <footer id="footer" class="footer">
             <div class="container footer-top">

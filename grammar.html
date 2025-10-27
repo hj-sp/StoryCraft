@@ -93,62 +93,73 @@
         </header>
 
         <main class="main page-wrap">
-  <div class="container section-title" data-aos="fade-up">
-    <div class="container">
-      <div class="page-inputResult">
-
-        <!-- 입력 영역 -->
-        <div class="input-wrap">
-          <textarea
-            id="userInput"
-            placeholder="여기에 글을 입력하세요..."
-            class="textarea_SC"
-          ></textarea>
-
-          <!-- 입력창 우하단: 버튼 클러스터 -->
-          <div class="btn-cluster">
-            <button id="grammarBtn" class="floating-btn" aria-label="문법 교정">
-               문법 교정
-            </button>
-          </div>
-        </div>
-
-        <!-- 중앙 화살표 -->
-        <div class="page-arrow"><span class="arrow"></span></div>
-
-        <!-- 결과 영역 -->
-        <div class="result-wrap">
-          <div id="resultArea" class="resultArea_SC" style="text-align:left">
-            <table id="grammarTable">
-              <thead>
-                <tr>
-                  <th>교정문</th>
-                  <th>관련 규범&설명</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <!-- 결과 다운로드: 우하단 -->
-          <button
-            id="pdfDownloadBtn"
-            class="floating-icon"
-            title="결과 다운로드"
-            aria-label="결과 다운로드"
-          >💾</button>
-        </div>
-      </div>
-
-      <!-- 로딩 스피너 -->
-      <div id="loadingSpinner" style="display:none; text-align:center; margin:10px 0;">
-        <div class="spinner"></div>
-        <p style="margin-top:5px; color:gray;">⏳ 처리 중입니다...</p>
-      </div>
-    </div>
-  </div>
-</main>
-
+            <div class="container section-title" data-aos="fade-up">
+                <div class="container">
+                    <div class="page-inputResult">
+                        <div class="input-wrap">
+                            <textarea
+                                id="userInput"
+                                placeholder="여기에 글을 입력하세요..."
+                                class="textarea_SC"
+                            ></textarea>
+                            <div class="btn-cluster">
+                                <button
+                                    id="grammarBtn"
+                                    class="floating-btn"
+                                    aria-label="문법 교정"
+                                >
+                                    문법 교정
+                                </button>
+                            </div>
+                        </div>
+                        <div class="page-arrow">
+                            <span class="arrow"></span>
+                        </div>
+                        <div class="result-wrap">
+                            <div
+                                id="resultArea"
+                                class="resultArea_SC grammarTableDiv"
+                                style="padding: 0;"
+                            >
+                                <table id="grammarTable">
+                                    <thead>
+                                        <tr>
+                                            <th>원문 & 교정문</th>
+                                            <th>관련 규범 & 설명</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <button
+                                id="pdfDownloadBtn"
+                                class="floating-icon"
+                                title="결과 다운로드"
+                                aria-label="결과 다운로드"
+                            >
+                                💾
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        id="edit_spinner"
+                        class="edit_spinner"
+                        aria-hidden="true"
+                    >
+                        <div class="edit_spinner__backdrop"></div>
+                        <div
+                            class="edit_spinner__center"
+                            role="status"
+                            aria-live="polite"
+                            aria-label="처리 중"
+                        >
+                            <div class="edit_spinner__ring"></div>
+                            <div class="edit_spinner__label">처리 중…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
 
         <footer id="footer" class="footer">
             <div class="container footer-top">
@@ -294,104 +305,5 @@
         <script src="assets/js/script.js"></script>
         <script src="https://unpkg.com/diff-match-patch"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
-
-        <script>
-            (() => {
-                // ---- 안전 유틸 (중복 선언 방지) ----
-                window.SC = window.SC || {};
-                if (!window.SC.setHidden) {
-                    window.SC.setHidden = (el, v) => {
-                        if (el) el.hidden = !!v;
-                    };
-                }
-
-                function removeIcons(text) {
-                    if (typeof text !== 'string') return text || '';
-                    // 필요 시 아이콘/태그 제거 규칙은 여기서 확장
-                    return text
-                        .replace(/<i[^>]*>.*?<\/i>/g, '')
-                        .replace(/[🖊️💾]/g, '');
-                }
-
-                function $(sel) {
-                    return document.querySelector(sel);
-                }
-
-                document.addEventListener('DOMContentLoaded', () => {
-                    // ---- 이 페이지에 있을 수도/없을 수도 있는 메뉴들: null 가드 필수 ----
-                    const menu = document.getElementById('customContextMenu');
-                    const styleSubmenu =
-                        document.getElementById('styleSubmenu');
-                    const translateSubmenu =
-                        document.getElementById('translateSubmenu');
-
-                    function hideAllMenus() {
-                        window.SC.setHidden(menu, true);
-                        window.SC.setHidden(styleSubmenu, true);
-                        window.SC.setHidden(translateSubmenu, true);
-                    }
-                    // 예: 필요 시에만 호출
-                    // hideAllMenus();
-
-                    // ---- 필수 요소들 ----
-                    const grammarBtn = document.getElementById('grammarBtn');
-                    const userInput = document.getElementById('userInput');
-                    const spinner = document.getElementById('loadingSpinner');
-                    const tbody = document.querySelector('#grammarTable tbody');
-
-                    // 안전성 체크
-                    if (!grammarBtn || !userInput || !spinner || !tbody) {
-                        console.warn('[grammar] missing element', {
-                            grammarBtn,
-                            userInput,
-                            spinner,
-                            tbody,
-                        });
-                        return;
-                    }
-
-                    async function mistralGrammarSafe(e) {
-                        e.preventDefault();
-
-                        // 입력 텍스트 확보 + 방어
-                        const original = (userInput.value ?? '').toString();
-                        const inputText = removeIcons(original);
-
-                        // 빈 입력이면 테이블 초기화만
-                        if (!inputText.trim()) {
-                            tbody.innerHTML = '';
-                            return;
-                        }
-
-                        // 스피너 on
-                        spinner.style.display = 'block';
-
-                        try {
-                            // === 여기에 실제 API 호출/처리 로직 ===
-                            // 예시 응답 (실사용 시 fetch 대체)
-                            // const res = await fetch(...);
-                            // const data = await res.json();
-                            // const resultText = removeIcons(data?.output ?? '');
-                        } catch (err) {
-                            console.error('Fetch error:', err);
-                            // 사용자가 보게 될 에러 표시 (원하면 resultArea에 메시지 출력)
-                            tbody.innerHTML = `
-          <tr><td colspan="2" style="color:#c00">오류가 발생했어요. 잠시 후 다시 시도해 주세요.</td></tr>
-        `;
-                        } finally {
-                            // 스피너 off
-                            spinner.style.display = 'none';
-                        }
-                    }
-
-                    function escapeHtml(s) {
-                        return String(s)
-                            .replaceAll('&', '&amp;')
-                            .replaceAll('<', '&lt;')
-                            .replaceAll('>', '&gt;');
-                    }
-                });
-            })();
-        </script>
     </body>
 </html>

@@ -23,24 +23,27 @@ from google.cloud import translate_v2 as google_translate
 from google.cloud import vision
 import html
 import time
-import io, os, re, zipfile, tempfile, pathlib, subprocess
+import io
+import os
+import re
+import zipfile
+import tempfile
+import pathlib
+import subprocess
 import xml.etree.ElementTree as ET
 import speech_recognition as sr  # 음성인식
 from pydub import AudioSegment
 from io import BytesIO
 import imageio_ffmpeg
 from hanspell import spell_checker
+from datetime import datetime
 from typing import Optional, Tuple, List
-
-
-# PDF/오피스 파서
-import fitz                     
-from docx import Document       
-from pptx import Presentation   
+import fitz
+from docx import Document
+from pptx import Presentation
 from openpyxl import load_workbook
-import olefile                  
-import chardet                  
-
+import olefile
+import chardet
 
 try:
     import kss
@@ -183,7 +186,6 @@ def _crop_to_last_boundary(s: str) -> str:
     return s if not m else s[:m[-1].end()]
 
 # 문서 이미지 텍스트 추출 관련
-
 def ocr_image_bytes(img_bytes: bytes) -> str:
     if not img_bytes:
         return ""
@@ -234,7 +236,8 @@ def extract_from_pdf(raw: bytes) -> Tuple[str, List[str]]:
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
-    import zipfile, io
+    import zipfile
+    import io
     text_parts, ocr_parts = [], []
     # 1) 본문 텍스트
     try:
@@ -250,17 +253,19 @@ def extract_from_docx(raw: bytes) -> Tuple[str, List[str]]:
             for name in zf.namelist():
                 low = name.lower()
                 if low.startswith("word/media/") and low.split(".")[-1] in (
-                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                    "png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"
                 ):
                     ocr_parts.append(ocr_image_bytes(zf.read(name)))
                     found += 1
-                print(f"[DOCX] media images found: {found}, ocred: {sum(1 for t in ocr_parts if t)}")
+                print(
+                    f"[DOCX] media images found: {found}, ocred: {sum(1 for t in ocr_parts if t)}")
     except Exception as e:
         print("docx media zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_pptx(raw: bytes) -> Tuple[str, List[str]]:
-    import zipfile, io
+    import zipfile
+    import io
     text_parts, ocr_parts = [], []
     # 1) 본문 텍스트
     try:
@@ -277,7 +282,7 @@ def extract_from_pptx(raw: bytes) -> Tuple[str, List[str]]:
             for name in zf.namelist():
                 low = name.lower()
                 if low.startswith("ppt/media/") and low.split(".")[-1] in (
-                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                    "png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"
                 ):
                     ocr_parts.append(ocr_image_bytes(zf.read(name)))
     except Exception as e:
@@ -285,7 +290,8 @@ def extract_from_pptx(raw: bytes) -> Tuple[str, List[str]]:
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
 
 def extract_from_xlsx(raw: bytes) -> Tuple[str, List[str]]:
-    import zipfile, io
+    import zipfile
+    import io
     text_parts, ocr_parts = [], []
     # 1) 셀 텍스트
     try:
@@ -303,13 +309,12 @@ def extract_from_xlsx(raw: bytes) -> Tuple[str, List[str]]:
             for name in zf.namelist():
                 low = name.lower()
                 if low.startswith("xl/media/") and low.split(".")[-1] in (
-                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                    "png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"
                 ):
                     ocr_parts.append(ocr_image_bytes(zf.read(name)))
     except Exception as e:
         print("xlsx media zip scan err:", e)
     return "\n".join(text_parts).strip(), [t for t in ocr_parts if t]
-
 
 
 def try_guess_image_from_bin(bin_bytes: bytes) -> bytes:
@@ -348,8 +353,10 @@ def extract_from_hwp_images_only(raw: bytes) -> Tuple[str, List[str]]:
                     except Exception as e:
                         print("hwp bin read err:", e)
     finally:
-        try: os.remove(path)
-        except: pass
+        try:
+            os.remove(path)
+        except:
+            pass
     return "", [t for t in ocr_parts if t]
 
 def extract_text_from_hwp_hwp5txt(raw: bytes) -> str:
@@ -363,17 +370,21 @@ def extract_text_from_hwp_hwp5txt(raw: bytes) -> str:
         path = tmp.name
     try:
         # hwp5txt 가 PATH 에 있어야 함 (리눅스 환경 권장)
-        out = subprocess.check_output(["hwp5txt", path], encoding="utf-8", errors="ignore")
+        out = subprocess.check_output(
+            ["hwp5txt", path], encoding="utf-8", errors="ignore")
         return out.strip()
     except Exception as e:
         print("hwp5txt not available or failed:", e)
         return ""
     finally:
-        try: os.remove(path)
-        except: pass
+        try:
+            os.remove(path)
+        except:
+            pass
 
 def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
-    import zipfile, io
+    import zipfile
+    import io
     text_parts, ocr_parts = [], []
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
@@ -381,7 +392,7 @@ def extract_from_hwpx_zip(raw: bytes) -> Tuple[str, List[str]]:
                 low = name.lower()
                 # HWPX는 주로 Contents/Resources/… 경로에 이미지가 있음
                 if ("/resources/" in low or low.startswith("contents/")) and low.split(".")[-1] in (
-                    "png","jpg","jpeg","bmp","gif","tif","tiff","webp"
+                    "png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"
                 ):
                     ocr_parts.append(ocr_image_bytes(zf.read(name)))
             # (원하면 여기서 XML 텍스트도 추가 파싱)
@@ -407,7 +418,7 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
             body, ocr_list = extract_from_pdf(binary)
 
         elif ext == "docx":
-            body, ocr_list = extract_from_docx(binary) 
+            body, ocr_list = extract_from_docx(binary)
 
         elif ext in ["pptx", "ppt"]:
             body, ocr_list = extract_from_pptx(binary)
@@ -439,7 +450,6 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
-
     if body and ocr_text:
         return f"{body}\n\n{ocr_text}"
     elif ocr_text:
@@ -448,11 +458,9 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
         return body
 
 
-
 load_dotenv()
 
 app = FastAPI()
-
 
 ALLOW_ORIGINS = [
     "http://127.0.0.1:5500",
@@ -531,6 +539,7 @@ AGENT_ID_SUMMARY = os.getenv("MISTRAL_AGENT_ID_SUMMARY")
 AGENT_ID_REWRITE = os.getenv("MISTRAL_AGENT_ID_REWRITE")
 AGENT_ID_GRAMMAR = os.getenv("MISTRAL_AGENT_ID_GRAMMAR")
 AGENT_ID_GRAMMAR2 = os.getenv("MISTRAL_AGENT_ID_GRAMMAR2")
+AGENT_ID_GRAMMAR3 = os.getenv("MISTRAL_AGENT_ID_GRAMMAR3")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -986,7 +995,7 @@ async def mistral_grammar(content: TextInput):
         "Content-Type": "application/json"
     }
     payload = {
-        "agent_id": AGENT_ID_GRAMMAR,
+        "agent_id": AGENT_ID_GRAMMAR3,
         "messages": [
             {"role": "user", "content": content.content}
         ]
@@ -1002,7 +1011,7 @@ async def mistral_grammar(content: TextInput):
         return {"error": f"HTTP 오류: {response.status_code}", "detail": response.text}
 
     result = response.json()
-    # print("Mistral 응답:", result)
+    print("Mistral 응답:", result)
 
     try:
         message = result["choices"][0]["message"]["content"]
@@ -1012,6 +1021,7 @@ async def mistral_grammar(content: TextInput):
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
     print(f"[총 처리 시간] {elapsed_time:.2f}초")
+    print("현재 시간 : ", datetime.now().time())
 
     return {"result": message}
 
@@ -1188,9 +1198,9 @@ async def cohere_informal(payload: InformalInput):
     # 1) 엔딩 옵션
     ending = (payload.ending or "").strip().lower()
     ending_rules = {
-        "hada":  "모든 문장을 '~다'로 끝나는 평서형(…한다/…이다)으로 바꿔줘. 구어체/해요체/존칭 표현은 쓰지 마.",
-        "haetda":"모든 문장을 과거 평서형 '~했다/~였다'로 바꿔줘. 구어체/해요체/존칭 표현은 쓰지 마.",
-        "hae":   "모든 문장을 '~해/~했어' 반말체로 바꿔줘. 머리말이나 설명을 붙이지 마."
+        "hada": "모든 문장을 '~다'로 끝나는 평서형(…한다/…이다)으로 바꿔줘. 구어체/해요체/존칭 표현은 쓰지 마.",
+        "haetda": "모든 문장을 과거 평서형 '~했다/~였다'로 바꿔줘. 구어체/해요체/존칭 표현은 쓰지 마.",
+        "hae": "모든 문장을 '~해/~했어' 반말체로 바꿔줘. 머리말이나 설명을 붙이지 마."
     }
     instruction = ending_rules.get(ending, ending_rules["hae"])
 
@@ -1249,7 +1259,8 @@ async def cohere_informal(payload: InformalInput):
                  if not re.match(rf"^\s*{ban_prefix}\b", ln)]
         s = "\n".join(lines).strip()
         # 남은 줄에서 헤더 비슷한 것(짧은 한 단어) 제거
-        lines = [ln for ln in s.splitlines() if not re.fullmatch(r"\s*[가-힣A-Za-z]{1,6}\s*", ln)]
+        lines = [ln for ln in s.splitlines() if not re.fullmatch(
+            r"\s*[가-힣A-Za-z]{1,6}\s*", ln)]
         s = "\n".join(lines).strip()
         return s
 
@@ -1466,6 +1477,7 @@ async def file_scan(file: UploadFile = File(...)):
             os.remove(tmp_path)
         except:
             pass
+
 
 @app.post("/pdfScan")
 async def upload_pdf(pdf: UploadFile = File(...)):
