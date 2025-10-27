@@ -31,3 +31,4 @@ PyMuPDF
 python-docx
 olefile      
 chardet
+fitz

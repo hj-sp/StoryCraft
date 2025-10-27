@@ -93,212 +93,154 @@
         </header>
 
         <main class="main page-wrap">
-            <div class="container section-title" data-aos="fade-up">
-                <div class="container">
-                    <form id="uploadForm">
-                        <div class="page-button">
-                            <input
-                                type="file"
-                                id="audioFile"
-                                name="audio"
-                                accept="audio/*"
-                                class="pdfScanFileChooseBtn_SC"
-                            />
-                            <button
-                                id="startRecord"
-                                type="button"
-                                class="record-btn start"
-                            >
-                                🎙️
-                            </button>
-                            <button
-                                id="stopRecord"
-                                type="button"
-                                class="record-btn stop"
-                                disabled
-                            >
-                                🛑
-                            </button>
-                        </div>
-                        <div class="page-button">
-                            <select id="styleSelect">
-                                <option value="casual">구어체</option>
-                                <option value="formal">격식체</option>
-                                <option value="literary">문학체</option>
-                                <option value="academic">학술체</option>
-                            </select>
-                            <button
-                                id="speechStyleBtn"
-                                type="button"
-                                name="action"
-                                value="style"
-                                class="resultBtn_SC"
-                            >
-                                문체 변경
-                            </button>
-                            <button
-                                id="speechSummaryBtn"
-                                type="button"
-                                name="action"
-                                value="summary"
-                                class="resultBtn_SC"
-                            >
-                                요약
-                            </button>
-                            <button
-                                id="speechExpandBtn"
-                                type="button"
-                                name="action"
-                                value="expand"
-                                class="resultBtn_SC"
-                            >
-                                확장
-                            </button>
-                            <button
-                                id="speechHonorificBtn"
-                                type="button"
-                                name="action"
-                                value="honorific"
-                                class="resultBtn_SC"
-                            >
-                                높임말
-                            </button>
-                            <button
-                                id="speechInformalBtn"
-                                type="button"
-                                name="action"
-                                value="informal"
-                                class="resultBtn_SC"
-                            >
-                                반말
-                            </button>
-                            <select id="sourceSelector">
-                                <option value="auto" selected>자동 감지</option>
-                                <option value="gu">구자라트어</option>
-                                <option value="el">그리스어</option>
-                                <option value="ne">네팔어</option>
-                                <option value="nl">네덜란드어</option>
-                                <option value="de">독일어</option>
-                                <option value="ru">러시아어</option>
-                                <option value="ro">루마니아어</option>
-                                <option value="mr">마라티어</option>
-                                <option value="ms">말레이어</option>
-                                <option value="vi">베트남어</option>
-                                <option value="bn">벵골어</option>
-                                <option value="sv">스웨덴어</option>
-                                <option value="es">스페인어</option>
-                                <option value="af">아프리칸스어</option>
-                                <option value="ar">아랍어</option>
-                                <option value="en">영어</option>
-                                <option value="uk">우크라이나어</option>
-                                <option value="it">이탈리아어</option>
-                                <option value="ja">일본어</option>
-                                <option value="jv">자바어</option>
-                                <option value="ka">조지아어</option>
-                                <option value="zh-CN">중국어(간체)</option>
-                                <option value="zh-TW">중국어(번체)</option>
-                                <option value="ta">타밀어</option>
-                                <option value="th">태국어</option>
-                                <option value="tr">터키어</option>
-                                <option value="fa">페르시아어</option>
-                                <option value="pt">포르투갈어</option>
-                                <option value="pl">폴란드어</option>
-                                <option value="fr">프랑스어</option>
-                                <option value="ko">한국어</option>
-                                <option value="hi">힌디어</option>
-                            </select>
-                            <div class="page-arrow">
-                                <span class="arrow"></span>
-                            </div>
-                            <select id="targetSelector">
-                                <option value="gu">구자라트어</option>
-                                <option value="el">그리스어</option>
-                                <option value="ne">네팔어</option>
-                                <option value="nl">네덜란드어</option>
-                                <option value="de">독일어</option>
-                                <option value="ru">러시아어</option>
-                                <option value="ro">루마니아어</option>
-                                <option value="mr">마라티어</option>
-                                <option value="ms">말레이어</option>
-                                <option value="vi">베트남어</option>
-                                <option value="bn">벵골어</option>
-                                <option value="sv">스웨덴어</option>
-                                <option value="es">스페인어</option>
-                                <option value="af">아프리칸스어</option>
-                                <option value="ar">아랍어</option>
-                                <option value="en">영어</option>
-                                <option value="uk">우크라이나어</option>
-                                <option value="it">이탈리아어</option>
-                                <option value="ja">일본어</option>
-                                <option value="jv">자바어</option>
-                                <option value="ka">조지아어</option>
-                                <option value="zh-CN">중국어(간체)</option>
-                                <option value="zh-TW">중국어(번체)</option>
-                                <option value="ta">타밀어</option>
-                                <option value="th">태국어</option>
-                                <option value="tr">터키어</option>
-                                <option value="fa">페르시아어</option>
-                                <option value="pt">포르투갈어</option>
-                                <option value="pl">폴란드어</option>
-                                <option value="fr">프랑스어</option>
-                                <option value="ko">한국어</option>
-                                <option value="hi">힌디어</option>
-                            </select>
-                            <button
-                                id="speechTranslateBtn"
-                                type="button"
-                                name="action"
-                                value="translate"
-                                class="resultBtn_SC"
-                            >
-                                번역
-                            </button>
-                            <button
-                                id="pdfDownloadBtn"
-                                class="resultAreaPdfDownloadBtn_SC"
-                            >
-                                💾
-                            </button>
-                        </div>
-                    </form>
-                    <div class="page-inputResult">
-                        <!-- <div id="speechArea" class="resultArea_SC"></div>
-                        <div class="page-arrow">
-                            <span class="arrow"></span>
-                        </div> -->
-                        <div
-                            class="resultBox grammarBox"
-                            id="grammarBox"
-                            style="display: none"
-                        >
-                            <table id="grammarTable" class="grammar-table">
-                                <thead>
-                                    <tr>
-                                        <th>교정문</th>
-                                        <th>관련 규범&설명</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div id="resultArea" class="resultArea_SC"></div>
-                    </div>
-                    <div
-                        id="loadingSpinner"
-                        style="
-                            display: none;
-                            text-align: center;
-                            margin: 10px 0;
-                        "
-                    >
-                        <div class="spinner"></div>
-                        <p style="margin-top: 5px; color: gray">
-                            ⏳ 처리 중입니다...
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </main>
+  <div class="container section-title" data-aos="fade-up">
+    <div class="container">
+
+      <!-- 통합 툴바 -->
+      <form id="uploadForm">
+        <div class="speech-toolbar grid-3">
+
+          <!-- G1: 입력/녹음 -->
+          <div class="tb-group g1">
+            <label class="file-pill">
+              <input
+                type="file"
+                id="audioFile"
+                name="audio"
+                accept="audio/*"
+              />
+              <span>파일 선택</span>
+            </label>
+
+            <button id="startRecord" type="button" class="pill primary2">🎙️ 녹음</button>
+            <button id="stopRecord"  type="button" class="pill danger" disabled>🛑 중지</button>
+          </div>
+
+          <!-- G2: 텍스트 변환 -->
+          <div class="tb-group g2">
+            <select id="styleSelect" class="pill select">
+              <option value="casual">구어체</option>
+              <option value="formal">격식체</option>
+              <option value="literary">문학체</option>
+              <option value="academic">학술체</option>
+            </select>
+
+            <button id="speechStyleBtn"     type="button" name="action" value="style"     class="pill primary"> 문체변경</button>
+            <button id="speechSummaryBtn"   type="button" name="action" value="summary"   class="pill primary">요약</button>
+            <button id="speechExpandBtn"    type="button" name="action" value="expand"    class="pill primary"> 확장</button>
+            <button id="speechHonorificBtn" type="button" name="action" value="honorific" class="pill primary">높임말</button>
+            <button id="speechInformalBtn"  type="button" name="action" value="informal"  class="pill primary">반말</button>
+          </div>
+
+          <!-- G3: 번역 -->
+          <div class="tb-group g3">
+            <select id="sourceSelector" class="pill select" aria-label="원본 언어">
+              <option value="auto" selected>자동 감지</option>
+              <option value="gu">구자라트어</option>
+              <option value="el">그리스어</option>
+              <option value="ne">네팔어</option>
+              <option value="nl">네덜란드어</option>
+              <option value="de">독일어</option>
+              <option value="ru">러시아어</option>
+              <option value="ro">루마니아어</option>
+              <option value="mr">마라티어</option>
+              <option value="ms">말레이어</option>
+              <option value="vi">베트남어</option>
+              <option value="bn">벵골어</option>
+              <option value="sv">스웨덴어</option>
+              <option value="es">스페인어</option>
+              <option value="af">아프리칸스어</option>
+              <option value="ar">아랍어</option>
+              <option value="en">영어</option>
+              <option value="uk">우크라이나어</option>
+              <option value="it">이탈리아어</option>
+              <option value="ja">일본어</option>
+              <option value="jv">자바어</option>
+              <option value="ka">조지아어</option>
+              <option value="zh-CN">중국어(간체)</option>
+              <option value="zh-TW">중국어(번체)</option>
+              <option value="ta">타밀어</option>
+              <option value="th">태국어</option>
+              <option value="tr">터키어</option>
+              <option value="fa">페르시아어</option>
+              <option value="pt">포르투갈어</option>
+              <option value="pl">폴란드어</option>
+              <option value="fr">프랑스어</option>
+              <option value="ko">한국어</option>
+              <option value="hi">힌디어</option>
+            </select>
+
+            <button type="button" class="pill icon" id="trSwap" aria-label="언어 교환" title="언어 교환(↔)">↔</button>
+
+            <select id="targetSelector" class="pill select" aria-label="대상 언어">
+              <option value="gu">구자라트어</option>
+              <option value="el">그리스어</option>
+              <option value="ne">네팔어</option>
+              <option value="nl">네덜란드어</option>
+              <option value="de">독일어</option>
+              <option value="ru">러시아어</option>
+              <option value="ro">루마니아어</option>
+              <option value="mr">마라티어</option>
+              <option value="ms">말레이어</option>
+              <option value="vi">베트남어</option>
+              <option value="bn">벵골어</option>
+              <option value="sv">스웨덴어</option>
+              <option value="es">스페인어</option>
+              <option value="af">아프리칸스어</option>
+              <option value="ar">아랍어</option>
+              <option value="en">영어</option>
+              <option value="uk">우크라이나어</option>
+              <option value="it">이탈리아어</option>
+              <option value="ja">일본어</option>
+              <option value="jv">자바어</option>
+              <option value="ka">조지아어</option>
+              <option value="zh-CN">중국어(간체)</option>
+              <option value="zh-TW">중국어(번체)</option>
+              <option value="ta">타밀어</option>
+              <option value="th">태국어</option>
+              <option value="tr">터키어</option>
+              <option value="fa">페르시아어</option>
+              <option value="pt">포르투갈어</option>
+              <option value="pl">폴란드어</option>
+              <option value="fr">프랑스어</option>
+              <option value="ko">한국어</option>
+              <option value="hi">힌디어</option>
+            </select>
+
+            <button id="speechTranslateBtn" type="button" name="action" value="translate" class="pill primary">번역</button>
+
+          </div>
+
+        </div>
+      </form>
+
+      <!-- 결과/표 영역 -->
+      <div class="page-inputResult">
+        <div class="resultBox grammarBox" id="grammarBox" style="display:none">
+          <table id="grammarTable" class="grammar-table">
+            <thead><tr><th>교정문</th><th>관련 규범&설명</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="result-wrap">
+          <div id="resultArea" class="resultArea_SC"></div>
+
+          <!-- ✅ 결과창 하단 우측 -->
+          <button id="pdfDownloadBtn" type="button" class="floating-icon" title="다운로드" aria-label="다운로드">💾</button>
+        </div>
+      </div>
+
+      <!-- 로딩 -->
+      <div id="loadingSpinner" style="display:none; text-align:center; margin:10px 0;">
+        <div class="spinner"></div>
+        <p style="margin-top:5px; color:gray">⏳ 처리 중입니다...</p>
+      </div>
+
+    </div>
+  </div>
+</main>
+
 
         <footer id="footer" class="footer">
             <div class="container footer-top">
@@ -446,5 +388,16 @@
         <script src="assets/js/script.js" defer></script>
         <script src="https://unpkg.com/diff-match-patch"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+        <script>
+  // 언어 스왑
+  document.getElementById('trSwap')?.addEventListener('click', () => {
+    const s = document.getElementById('sourceSelector');
+    const t = document.getElementById('targetSelector');
+    if (!s || !t) return;
+    const sv = s.value, tv = t.value;
+    if (sv === 'auto') { s.value = tv; } else { s.value = tv; t.value = sv; }
+  });
+</script>
+
     </body>
 </html>

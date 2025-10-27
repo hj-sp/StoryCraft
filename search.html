@@ -89,54 +89,70 @@
         </header>
 
         <main class="main page-wrap">
-            <div class="container section-title" data-aos="fade-up">
-                <div class="container">
-                    <div class="page-button">
-                        <button onclick="searchExample()" class="resultBtn_SC">
-                            <span>예문 찾기 🔎</span>
-                        </button>
-                        <button
-                            id="pdfDownloadBtn"
-                            class="resultAreaPdfDownloadBtn_SC"
-                        >
-                            💾
-                        </button>
-                    </div>
-                    <div class="page-inputResult">
-                        <textarea
-                            id="userInput"
-                            placeholder="여기에 글을 입력하세요..."
-                            class="textarea_SC"
-                        ></textarea>
-                        <div class="page-arrow">
-                            <span class="arrow"></span>
-                        </div>
-                        <div id="exampleContainer" class="resultArea_SC"></div>
-                    </div>
-                    <div
-                        id="loadingSpinner"
-                        style="
-                            display: none;
-                            text-align: center;
-                            margin: 10px 0;
-                        "
-                    >
-                        <div class="spinner"></div>
-                        <p style="margin-top: 5px; color: gray">
-                            ⏳ 예문을 불러오는 중입니다...
-                        </p>
-                    </div>
-                    <button
-                        id="loadMoreBtn"
-                        class="resultBtn_SC"
-                        onclick="loadMoreExamples()"
-                        style="display: none"
-                    >
-                        ➕ 예문 더보기
-                    </button>
-                </div>
-            </div>
-        </main>
+  <div class="container section-title" data-aos="fade-up">
+
+    <div class="page-inputResult">
+      <!-- 입력 영역 -->
+      <div class="input-wrap">
+        <textarea
+          id="userInput"
+          placeholder="여기에 글을 입력하세요..."
+          class="textarea_SC"
+        ></textarea>
+
+        <!-- ① 입력창 오른쪽 하단: 예문 찾기 -->
+        <button
+          id="searchBtn"
+          class="floating-btn primary"
+          onclick="searchExample()"
+          aria-label="예문 찾기"
+        >
+          <span>예문 찾기 🔎</span>
+        </button>
+      </div>
+
+      <!-- 중앙 화살표 -->
+      <div class="page-arrow"><span class="arrow"></span></div>
+
+      <!-- 결과 영역 -->
+      <div class="result-wrap">
+        <div id="exampleContainer" class="resultArea_SC"></div>
+
+        <!-- ② 결과창 하단 중앙: 예문 더보기 (필요 시 display:block로 표시) -->
+        <button
+          id="loadMoreBtn"
+          class="floating-btn ghost center"
+          onclick="loadMoreExamples()"
+          style="display:none"
+          aria-label="예문 더보기"
+        >
+          ➕ 예문 더보기
+        </button>
+
+        <!-- ③ 결과창 오른쪽 하단: 결과 다운로드 -->
+        <button
+          id="pdfDownloadBtn"
+          class="floating-icon"
+          title="결과 다운로드"
+          aria-label="결과 다운로드"
+        >
+          💾
+        </button>
+      </div>
+    </div>
+
+    <!-- 로딩 스피너 -->
+    <div
+      id="loadingSpinner"
+      style="display:none; text-align:center; margin:10px 0;"
+      aria-live="polite"
+    >
+      <div class="spinner"></div>
+      <p style="margin-top:5px; color:gray;">⏳ 예문을 불러오는 중입니다...</p>
+    </div>
+
+  </div>
+</main>
 
         <footer id="footer" class="footer">
             <div class="container footer-top">

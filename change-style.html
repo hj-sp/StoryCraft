@@ -91,46 +91,60 @@
         </header>
 
         <main class="main page-wrap">
-            <div class="container section-title" data-aos="fade-up">
-                <div class="page-button">
-                    <select id="styleSelector">
-                        <option value="casual">구어체</option>
-                        <option value="formal">격식체</option>
-                        <option value="literary">문학체</option>
-                        <option value="academic">학술체</option>
-                    </select>
-                    <button onclick="applyStyle()" class="resultBtn_SC">
-                        문체 변경 ✍️
-                    </button>
-                    <button
-                        id="pdfDownloadBtn"
-                        class="resultAreaPdfDownloadBtn_SC"
-                    >
-                        💾
-                    </button>
-                </div>
-                <div class="page-inputResult">
-                    <textarea
-                        id="styleInput"
-                        placeholder="문장을 입력하세요..."
-                        class="textarea_SC"
-                    ></textarea>
-                    <div class="page-arrow">
-                        <span class="arrow"></span>
-                    </div>
-                    <div id="styleResult" class="resultArea_SC"></div>
-                </div>
-                <div
-                    id="loadingSpinner"
-                    style="display: none; text-align: center; margin: 10px 0"
-                >
-                    <div class="spinner"></div>
-                    <p style="margin-top: 5px; color: gray">
-                        ⏳ 처리 중입니다...
-                    </p>
-                </div>
-            </div>
-        </main>
+  <div class="container section-title" data-aos="fade-up">
+    <div class="page-inputResult">
+
+      <!-- 입력 영역 -->
+      <div class="input-wrap">
+        <textarea
+          id="styleInput"
+          placeholder="문장을 입력하세요..."
+          class="textarea_SC"
+        ></textarea>
+
+        <!-- 하단 버튼 묶음 -->
+        <div class="btn-cluster">
+          <select id="styleSelector" class="floating-select">
+            <option value="casual">구어체</option>
+            <option value="formal">격식체</option>
+            <option value="literary">문학체</option>
+            <option value="academic">학술체</option>
+          </select>
+
+          <button onclick="applyStyle()" class="floating-btn">
+            <span>✍️</span> 문체 변경
+          </button>
+        </div>
+      </div>
+
+      <!-- 중앙 화살표 -->
+      <div class="page-arrow"><span class="arrow"></span></div>
+
+      <!-- 결과 영역 -->
+      <div class="result-wrap">
+        <div id="styleResult" class="resultArea_SC"></div>
+
+        <!-- 결과 다운로드 버튼 -->
+        <button
+          id="pdfDownloadBtn"
+          class="floating-icon"
+          title="결과 다운로드"
+          aria-label="결과 다운로드"
+        >💾</button>
+      </div>
+    </div>
+
+    <!-- 로딩 스피너 -->
+    <div
+      id="loadingSpinner"
+      style="display:none; text-align:center; margin:10px 0;"
+    >
+      <div class="spinner"></div>
+      <p style="margin-top:5px; color:gray;">⏳ 처리 중입니다...</p>
+    </div>
+  </div>
+</main>
+
         <footer id="footer" class="footer">
             <div class="container footer-top">
                 <div class="row gy-4">

@@ -1177,40 +1177,84 @@ async def cohere_honorific(request: Request):
 
 @app.post("/cohereInformal")
 async def cohere_informal(payload: InformalInput):
+    import re
     co = cohere.ClientV2(COHERE_API_KEY)
 
-    # 'hada' | 'haetda' | 'hae' | ''
+    # 0) 입력
+    src = (payload.content or "").strip()
+    if not src:
+        return {"error": "content가 비었습니다."}
+
+    # 1) 엔딩 옵션
     ending = (payload.ending or "").strip().lower()
-
     ending_rules = {
-        "hada": (
-            "모든 문장을 '~다'로 끝나는 평서형(…한다/…이다)으로 써줘. "
-            "구어체/해요체/존칭 표현은 쓰지 말 것."
-        ),
-        "haetda": (
-            "모든 문장을 과거 평서형 '~했다/~였다'로 써줘. "
-            "구어체/해요체/존칭 표현은 쓰지 말 것."
-        ),
-        "hae": (
-            "모든 문장을 '~해/~했어' 반말체로 써줘."
-        ),
+        "hada":  "모든 문장을 '~다'로 끝나는 평서형(…한다/…이다)으로 바꿔줘. 구어체/해요체/존칭 표현은 쓰지 마.",
+        "haetda":"모든 문장을 과거 평서형 '~했다/~였다'로 바꿔줘. 구어체/해요체/존칭 표현은 쓰지 마.",
+        "hae":   "모든 문장을 '~해/~했어' 반말체로 바꿔줘. 머리말이나 설명을 붙이지 마."
     }
-    # 파라미터가 없으면 기존 동작(반말 '~해/~했어')을 그대로 유지
-    instruction = ending_rules.get(ending) or ending_rules["hae"]
+    instruction = ending_rules.get(ending, ending_rules["hae"])
 
-    user_prompt = f"""{payload.content}
+    # 2) 태그+few-shot 예시: 초단문/단문에서도 본문만 나오게
+    user_prompt = f"""
+다음 규칙을 지켜서 문장을 변환해.
+- {instruction}
+- 결과는 반드시 <out>와 </out> 사이에만 작성해.
+- 설명/머리말/따옴표/불릿/코드블록/제목 금지. 오직 변환 결과만.
+- </out> 뒤에는 아무 것도 쓰지 마.
 
-{instruction}
-추가 규칙:
-- 결과는 텍스트만 반환(설명/머리말/따옴표 금지).
-"""
+[예시]
+<in>안녕하세요</in>
+<out>안녕</out>
 
-    response = co.chat(
+<in>감사합니다</in>
+<out>고마워</out>
+
+<in>죄송합니다</in>
+<out>미안해</out>
+
+<in>네</in>
+<out>응</out>
+
+[변환할 문장]
+<in>{src}</in>
+
+[출력]
+<out>"""
+
+    resp = co.chat(
         model="command-a-03-2025",
-        messages=[{"role": "user", "content": user_prompt}]
+        messages=[
+            {"role": "system", "content": "너는 한국어 문체 변환기야. 오직 결과만 출력해."},
+            {"role": "user", "content": user_prompt}
+        ],
+        stop_sequences=["</out>"]  # 태그 닫히면 즉시 중단
     )
-    full_text = response.message.content[0].text
-    return {"result": full_text}
+
+    raw = (resp.message.content[0].text or "").strip()
+
+    # 3) 파싱: <out> ... </out> (</out>은 stop으로 잘렸을 수 있음)
+    m = re.search(r"<out>([\s\S]*?)$", raw)
+    out = (m.group(1) if m else raw).strip()
+
+    # 4) 서버측 살균기: 머리말/메타 라인/코드펜스/따옴표 제거
+    def sanitize(s: str) -> str:
+        # 코드펜스
+        s = re.sub(r"^```[\s\S]*?```$", "", s, flags=re.MULTILINE).strip()
+        # 양끝 따옴표
+        if len(s) >= 2 and s[0] in "'\"" and s[-1] == s[0]:
+            s = s[1:-1].strip()
+        # 흔한 메타 헤더 라인 제거
+        ban_prefix = r"(답변이|반말|높임말|알겠어|설명|지시|출력|예시|머리말)"
+        lines = [ln for ln in s.splitlines()
+                 if not re.match(rf"^\s*{ban_prefix}\b", ln)]
+        s = "\n".join(lines).strip()
+        # 남은 줄에서 헤더 비슷한 것(짧은 한 단어) 제거
+        lines = [ln for ln in s.splitlines() if not re.fullmatch(r"\s*[가-힣A-Za-z]{1,6}\s*", ln)]
+        s = "\n".join(lines).strip()
+        return s
+
+    out = sanitize(out)
+    return {"result": out, "ending": ending or "hae"}
 
 
 @app.post("/translate")

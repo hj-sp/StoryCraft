@@ -41,7 +41,7 @@
         />
 
         <!-- Main CSS File -->
-        <link href="assets/css/main.css" rel="stylesheet" />
+        <link href="assets/css/main.css?v=single1" rel="stylesheet" />
     </head>
 
     <body class="index-page">
@@ -75,91 +75,49 @@
         </header>
 
         <main class="main page-wrap">
-            <div class="container section-title" data-aos="fade-up">
-                <div class="container">
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        <div class="page-button">
-                            <div class="mb-3">
-                                <input
-                                    type="file"
-                                    id="fileAny"
-                                    name="file"
-                                    accept="image/*,.pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
-                                    required
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                onclick="performOCR()"
-                                class="resultBtn_SC"
-                            >
-                                이미지 스캔
-                            </button>
-                            <button
-                                id="pdfDownloadBtn"
-                                class="resultAreaPdfDownloadBtn_SC"
-                            >
-                                💾
-                            </button>
-                        </div>
-                        <div class="page-button">
-                            <select id="styleSelect">
-                                <option value="casual">구어체</option>
-                                <option value="formal">격식체</option>
-                                <option value="literary">문학체</option>
-                                <option value="academic">학술체</option>
-                            </select>
-                            <button
-                                id="pdfScanStyleBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                문체 변경
-                            </button>
-                            <button
-                                id="pdfScanRewriteBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                재작성
-                            </button>
-                            <button
-                                id="pdfScanSummaryBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                요약
-                            </button>
-                            <button
-                                id="pdfScanExpandBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                확장
-                            </button>
-                            <button
-                                id="pdfScanGrammarBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                문법 교정
-                            </button>
-                            <button
-                                id="pdfScanHonorificBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                높임말
-                            </button>
-                            <button
-                                id="pdfScanInformalBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                반말
-                            </button>
-                            <select id="sourceSelector">
-                                <option value="auto" selected>자동 감지</option>
+  <div class="container section-title" data-aos="fade-up">
+    <div class="container">
+
+      <!-- 툴바 -->
+      <form id="uploadForm" enctype="multipart/form-data">
+        <div class="speech-toolbar grid-3">
+
+          <!-- G1: 파일 업로드 & 스캔 -->
+          <div class="tb-group g1">
+            <label class="file-pill">
+              <input
+                type="file"
+                id="fileAny"
+                name="file"
+                accept="image/*,.pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.txt"
+                required
+              />
+              <span>파일 선택</span>
+            </label>
+            <button type="button" onclick="performOCR()" class="pill primary2">텍스트 추출</button>
+          </div>
+
+          <!-- G2: 텍스트 가공 -->
+          <div class="tb-group g2">
+            <select id="styleSelect" class="pill select">
+              <option value="casual">구어체</option>
+              <option value="formal">격식체</option>
+              <option value="literary">문학체</option>
+              <option value="academic">학술체</option>
+            </select>
+            <button id="pdfScanStyleBtn"     type="button" class="pill primary">문체</button>
+            <button id="pdfScanRewriteBtn"   type="button" class="pill primary">재작성</button>
+            <button id="pdfScanSummaryBtn"   type="button" class="pill primary">요약</button>
+            <button id="pdfScanExpandBtn"    type="button" class="pill primary">확장</button>
+            <button id="pdfScanGrammarBtn"   type="button" class="pill primary">문법</button>
+            <button id="pdfScanHonorificBtn" type="button" class="pill primary">높임말</button>
+            <button id="pdfScanInformalBtn"  type="button" class="pill primary">반말</button>
+          </div>
+
+          <!-- G3: 번역 -->
+          <div class="tb-group g3">
+            <select id="sourceSelector" class="pill select" aria-label="원본 언어">
+              <option value="auto" selected>자동 감지</option>
                                 <option value="gu">구자라트어</option>
                                 <option value="el">그리스어</option>
                                 <option value="ne">네팔어</option>
@@ -193,10 +151,8 @@
                                 <option value="ko">한국어</option>
                                 <option value="hi">힌디어</option>
                             </select>
-                            <div class="page-arrow">
-                                <span class="arrow"></span>
-                            </div>
-                            <select id="targetSelector">
+                             <button type="button" id="trSwap" class="pill icon" title="언어 교환" aria-label="언어 교환(↔)">↔</button>
+            <select id="targetSelector" class="pill select" aria-label="대상 언어">
                                 <option value="gu">구자라트어</option>
                                 <option value="el">그리스어</option>
                                 <option value="ne">네팔어</option>
@@ -230,64 +186,45 @@
                                 <option value="ko">한국어</option>
                                 <option value="hi">힌디어</option>
                             </select>
-                            <button
-                                id="pdfScanTranslateBtn"
-                                type="button"
-                                class="resultBtn_SC"
-                            >
-                                번역
-                            </button>
-                        </div>
+                            <button id="pdfScanTranslateBtn" type="button" class="pill primary">번역</button>
+          </div>
+        </div>
                     </form>
-                    <div>
-                        <small
-                            style="
-                                display: block;
-                                color: #888;
-                                margin-top: 6px;
-                            "
-                        >
-                            지원: JPG, PNG, PDF, DOCX, XLSX, PPTX, TXT
-                        </small>
-                    </div>
-                    <div class="page-inputResult">
-                        <div
-                            class="resultBox grammarBox"
-                            id="grammarBox"
-                            style="display: none"
-                        >
-                            <table id="grammarTable" class="grammar-table">
-                                <thead>
-                                    <tr>
-                                        <th>교정문</th>
-                                        <th>관련 규범&설명</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div
-                            id="ocrResult"
-                            class="resultArea_SC"
-                            style="text-align: left"
-                        ></div>
-                    </div>
-                    <div
-                        id="loadingSpinner"
-                        style="
-                            display: none;
-                            text-align: center;
-                            margin: 10px 0;
-                        "
-                    >
-                        <div class="spinner"></div>
-                        <p style="margin-top: 5px; color: gray">
-                            ⏳ 처리 중입니다...
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </main>
+
+      <!-- 결과 영역 -->
+      <div class="page-inputResult single">
+        <div class="resultBox grammarBox" id="grammarBox" style="display:none">
+          <table id="grammarTable" class="grammar-table">
+            <thead><tr><th>교정문</th><th>관련 규범&설명</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="result-wrap">
+          <div id="ocrResult" class="resultArea_SC" style="text-align:left"></div>
+
+          <!-- ✅ 결과창 우하단 다운로드 버튼 -->
+          <button
+            id="pdfDownloadBtn"
+            type="button"
+            class="floating-icon"
+            title="다운로드"
+            aria-label="다운로드"
+          >💾</button>
+        </div>
+      </div>
+      
+
+      <!-- 로딩 스피너 -->
+      <div id="loadingSpinner" style="display:none; text-align:center; margin:10px 0;">
+        <div class="spinner"></div>
+        <p style="margin-top:5px; color:gray">⏳ 처리 중입니다...</p>
+      </div>
+
+    </div>
+    <small class="support-text">지원: JPG, PNG, PDF, DOCX, XLSX, PPTX, TXT</small>
+  </div>
+</main>
 
         <footer id="footer" class="footer">
             <div class="container footer-top">
@@ -433,5 +370,15 @@
         <script src="assets/js/script.js?v=20251027"></script>
         <script src="https://unpkg.com/diff-match-patch"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+        <script>
+  // 언어 스왑
+  document.getElementById('trSwap')?.addEventListener('click', () => {
+    const s = document.getElementById('sourceSelector');
+    const t = document.getElementById('targetSelector');
+    if (!s || !t) return;
+    const sv = s.value, tv = t.value;
+    if (sv === 'auto') { s.value = tv; } else { s.value = tv; t.value = sv; }
+  });
+</script>
     </body>
 </html>
