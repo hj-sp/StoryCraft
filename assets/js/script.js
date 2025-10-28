@@ -10,7 +10,7 @@ var BASE_URL =
         ? BASE_URL
         : isLocal
         ? 'http://127.0.0.1:8000'
-        : 'https://storycraft-ppxj.onrender.com';
+        : 'https://storycraft-cnjn.onrender.com';
 // : 'https://storycraft-ppxj.onrender.com';
 
 /* === [INLINE SPINNER UTILS | put this just after BASE_URL, before DOMContentLoaded] === */
@@ -322,35 +322,36 @@ function restoreSelectionIfAny() {
 }
 
 function placeArrowCenter() {
-  const inputWrap = document.querySelector('.page-inputResult .input-wrap');
-  const arrow = document.querySelector('.page-inputResult .page-arrow');
-  if (!inputWrap || !arrow) return;
+    const inputWrap = document.querySelector('.page-inputResult .input-wrap');
+    const arrow = document.querySelector('.page-inputResult .page-arrow');
+    if (!inputWrap || !arrow) return;
 
-  const inputH = inputWrap.clientHeight;
-  const arrowH = arrow.clientHeight || 28;
-  const mt = Math.max(0, (inputH - arrowH) / 2);
-  arrow.style.marginTop = `${mt}px`;
+    const inputH = inputWrap.clientHeight;
+    const arrowH = arrow.clientHeight || 28;
+    const mt = Math.max(0, (inputH - arrowH) / 2);
+    arrow.style.marginTop = `${mt}px`;
 }
 
 /* === [/INLINE SPINNER UTILS] === */
 
 // DOMContentLoaded 이벤트를 사용하여 DOM이 완전히 로드된 이후에 document.getElementById로 요소를 찾도록 수정
 document.addEventListener('DOMContentLoaded', () => {
-
     placeArrowCenter();
     window.addEventListener('resize', placeArrowCenter);
 
-    const input = document.querySelector('.page-inputResult .input-wrap textarea');
-    
+    const input = document.querySelector(
+        '.page-inputResult .input-wrap textarea'
+    );
+
     if (input) {
-    input.addEventListener('input', placeArrowCenter);
-  }
+        input.addEventListener('input', placeArrowCenter);
+    }
 
     const resultArea = document.querySelector('.page-inputResult');
     if (resultArea) {
-    const ro = new ResizeObserver(placeArrowCenter);
-    ro.observe(resultArea);
-  }
+        const ro = new ResizeObserver(placeArrowCenter);
+        ro.observe(resultArea);
+    }
 
     // 버튼 클릭 이벤트 바인딩
     const searchBtn = document.getElementById('searchBtn');
@@ -984,120 +985,125 @@ async function applyStyle() {
 }
 
 async function summarizeText() {
-  const userInput = document.getElementById('userInput').value.trim();
-  const resultArea = document.getElementById('resultArea');
-  if (!resultArea) return;
-  spin(true);
+    const userInput = document.getElementById('userInput').value.trim();
+    const resultArea = document.getElementById('resultArea');
+    if (!resultArea) return;
+    spin(true);
 
-  if (!userInput) {
-    spin(false);
-    alert('입력된 문장이 없습니다.');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${BASE_URL}/summary`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: userInput }),
-    });
-    const data = await res.json();
-
-    // 원문 결과
-    const text = (data?.result || '').trim();
-
-    // ⚠️ 에이전트가 에코하는 "요약 모드: ..." 라벨 제거(불릿/볼드 변형 포함)
-    const cleanText = text.replace(
-      /^\s*(?:[-*•]\s*)?(?:\*{1,3})?\s*요약\s*모드\s*:\s*[^\n]*\n+/i,
-      ''
-    ).trim();
-
-    // 결과영역 초기화 후 재작성과 동일하게 내부 래퍼 div 생성
-    resultArea.innerHTML = '';
-    const box = document.createElement('div');
-    resultArea.appendChild(box);
-    box.innerHTML = `<p style="white-space: pre-wrap;">${cleanText}</p>`;
-
-    // 우측 패널 상단 정렬 강제(컨테이너가 flex여도 위로 붙게)
-    const pane = resultArea.closest('.result-wrap') || resultArea.parentElement;
-    if (pane) {
-      pane.style.alignItems = 'flex-start';
-      pane.style.justifyContent = 'flex-start';
-      // 필요 시 주석 해제: pane.style.display = 'block';
-    }
-    resultArea.scrollTop = 0;
-
-    // PDF 저장 버튼(있을 때만) 안전 재바인딩
-    const pdfBtn = document.getElementById('pdfDownloadBtn');
-    if (pdfBtn) {
-      const newBtn = pdfBtn.cloneNode(true);
-      newBtn.id = 'pdfDownloadBtn';
-      pdfBtn.replaceWith(newBtn);
-      newBtn.addEventListener('click', () => saveAsPDF(resultArea, '요약.pdf'));
+    if (!userInput) {
+        spin(false);
+        alert('입력된 문장이 없습니다.');
+        return;
     }
 
-  } catch (e) {
-    console.error(e);
-    resultArea.innerHTML = '<p>❗요약 요청 중 오류가 발생했습니다.</p>';
-  } finally {
-    spin(false);
-  }
+    try {
+        const res = await fetch(`${BASE_URL}/summary`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: userInput }),
+        });
+        const data = await res.json();
+
+        // 원문 결과
+        const text = (data?.result || '').trim();
+
+        // ⚠️ 에이전트가 에코하는 "요약 모드: ..." 라벨 제거(불릿/볼드 변형 포함)
+        const cleanText = text
+            .replace(
+                /^\s*(?:[-*•]\s*)?(?:\*{1,3})?\s*요약\s*모드\s*:\s*[^\n]*\n+/i,
+                ''
+            )
+            .trim();
+
+        // 결과영역 초기화 후 재작성과 동일하게 내부 래퍼 div 생성
+        resultArea.innerHTML = '';
+        const box = document.createElement('div');
+        resultArea.appendChild(box);
+        box.innerHTML = `<p style="white-space: pre-wrap;">${cleanText}</p>`;
+
+        // 우측 패널 상단 정렬 강제(컨테이너가 flex여도 위로 붙게)
+        const pane =
+            resultArea.closest('.result-wrap') || resultArea.parentElement;
+        if (pane) {
+            pane.style.alignItems = 'flex-start';
+            pane.style.justifyContent = 'flex-start';
+            // 필요 시 주석 해제: pane.style.display = 'block';
+        }
+        resultArea.scrollTop = 0;
+
+        // PDF 저장 버튼(있을 때만) 안전 재바인딩
+        const pdfBtn = document.getElementById('pdfDownloadBtn');
+        if (pdfBtn) {
+            const newBtn = pdfBtn.cloneNode(true);
+            newBtn.id = 'pdfDownloadBtn';
+            pdfBtn.replaceWith(newBtn);
+            newBtn.addEventListener('click', () =>
+                saveAsPDF(resultArea, '요약.pdf')
+            );
+        }
+    } catch (e) {
+        console.error(e);
+        resultArea.innerHTML = '<p>❗요약 요청 중 오류가 발생했습니다.</p>';
+    } finally {
+        spin(false);
+    }
 }
 
 async function expandText() {
-  const userInput = document.getElementById('userInput').value;
-  const resultArea = document.getElementById('resultArea');
-  if (!resultArea) return;
-  spin(true);
+    const userInput = document.getElementById('userInput').value;
+    const resultArea = document.getElementById('resultArea');
+    if (!resultArea) return;
+    spin(true);
 
-  if (!userInput.trim()) {
-    spin(false);
-    alert('입력된 문장이 없습니다.');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${BASE_URL}/expand`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: userInput }),
-    });
-
-    const data = await response.json();
-    const expanded = (data?.result || '').trim();
-
-    // 결과영역 초기화 후 내부 래퍼 div 생성(재작성/요약과 동일 구조)
-    resultArea.innerHTML = '';
-    const box = document.createElement('div');
-    resultArea.appendChild(box);
-    box.innerHTML = `<p style="white-space: pre-wrap;">${expanded}</p>`;
-
-    // 우측 패널 상단 정렬 강제
-    const pane = resultArea.closest('.result-wrap') || resultArea.parentElement;
-    if (pane) {
-      pane.style.alignItems = 'flex-start';
-      pane.style.justifyContent = 'flex-start';
-      // 필요 시 주석 해제: pane.style.display = 'block';
-    }
-    resultArea.scrollTop = 0;
-
-    // PDF 저장 버튼(있을 때만) 안전 재바인딩
-    const pdfBtn = document.getElementById('pdfDownloadBtn');
-    if (pdfBtn) {
-      const newBtn = pdfBtn.cloneNode(true);
-      newBtn.id = 'pdfDownloadBtn';
-      pdfBtn.replaceWith(newBtn);
-      newBtn.addEventListener('click', () => saveAsPDF(resultArea, '확장.pdf'));
+    if (!userInput.trim()) {
+        spin(false);
+        alert('입력된 문장이 없습니다.');
+        return;
     }
 
-  } catch (error) {
-    console.error('확장 요청 중 오류:', error);
-    resultArea.innerHTML = '<p>❗확장 요청 중 오류가 발생했습니다.</p>';
-  } finally {
-    spin(false);
-  }
+    try {
+        const response = await fetch(`${BASE_URL}/expand`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: userInput }),
+        });
+
+        const data = await response.json();
+        const expanded = (data?.result || '').trim();
+
+        // 결과영역 초기화 후 내부 래퍼 div 생성(재작성/요약과 동일 구조)
+        resultArea.innerHTML = '';
+        const box = document.createElement('div');
+        resultArea.appendChild(box);
+        box.innerHTML = `<p style="white-space: pre-wrap;">${expanded}</p>`;
+
+        // 우측 패널 상단 정렬 강제
+        const pane =
+            resultArea.closest('.result-wrap') || resultArea.parentElement;
+        if (pane) {
+            pane.style.alignItems = 'flex-start';
+            pane.style.justifyContent = 'flex-start';
+            // 필요 시 주석 해제: pane.style.display = 'block';
+        }
+        resultArea.scrollTop = 0;
+
+        // PDF 저장 버튼(있을 때만) 안전 재바인딩
+        const pdfBtn = document.getElementById('pdfDownloadBtn');
+        if (pdfBtn) {
+            const newBtn = pdfBtn.cloneNode(true);
+            newBtn.id = 'pdfDownloadBtn';
+            pdfBtn.replaceWith(newBtn);
+            newBtn.addEventListener('click', () =>
+                saveAsPDF(resultArea, '확장.pdf')
+            );
+        }
+    } catch (error) {
+        console.error('확장 요청 중 오류:', error);
+        resultArea.innerHTML = '<p>❗확장 요청 중 오류가 발생했습니다.</p>';
+    } finally {
+        spin(false);
+    }
 }
-
 
 async function mistralGrammar() {
     spin(true);
@@ -3920,10 +3926,12 @@ async function editorInsertRecording() {
 }
 
 async function sendPromptChange() {
+    spin(true);
     const promptEl = document.getElementById('promptText');
     const prompt = (promptEl?.value ?? '').trim();
     if (!prompt) {
         alert('프롬프트를 입력하세요.');
+        spin(false);
         return;
     }
 
@@ -3987,7 +3995,7 @@ async function sendPromptChange() {
     ];
     const hasWord = words.some((w) => prompt.includes(w));
 
-    showSpin?.(true);
+    // showSpin?.(true);
     try {
         if (hasWord) {
             // 커서 앞뒤만 서버에 넘기고, 결과를 커서 위치에 삽입
@@ -4026,7 +4034,8 @@ async function sendPromptChange() {
     } catch (e) {
         alert('프롬프트 처리 실패: ' + (e?.message || e));
     } finally {
-        showSpin?.(false);
+        // showSpin?.(false);
+        spin(false);
     }
 }
 
@@ -4068,9 +4077,10 @@ async function imagePromptChange() {
 
     if (!content) {
         alert('내용을 입력하세요.');
+        spin(false);
         return;
     }
-    // spin(true);
+    spin(true);
     if (hasWord) {
         try {
             const response = await fetch(`${BASE_URL}/promptAdd`, {
@@ -4095,7 +4105,7 @@ async function imagePromptChange() {
         } catch {
             alert('프롬프트 추가 실패: ' + e.message);
         } finally {
-            // spin(false);
+            spin(false);
             console.log('텍스트 추출 프롬프트 적용 완료');
         }
     } else {
@@ -4117,7 +4127,7 @@ async function imagePromptChange() {
         } catch (e) {
             alert('프롬프트 수정 실패: ' + e.message);
         } finally {
-            showSpin(false);
+            spin(false);
         }
     }
 }
@@ -7279,6 +7289,7 @@ menu.addEventListener('click', async (e) => {
     switch (action) {
         case 'summary':
             console.log('요약 기능 실행');
+            spin(true);
 
             try {
                 const data = await postJSON(`${BASE_URL}/summary`, {
@@ -7298,10 +7309,12 @@ menu.addEventListener('click', async (e) => {
                 alert('요약 실패: ' + e.message);
             } finally {
                 console.log('텍스트 추출 모달에서 요약 완료');
+                spin(false);
             }
             break;
         case 'expand':
             console.log('확장 기능 실행');
+            spin(true);
 
             try {
                 const data = await postJSON(`${BASE_URL}/expand`, {
@@ -7321,10 +7334,12 @@ menu.addEventListener('click', async (e) => {
                 alert('확장 실패: ' + e.message);
             } finally {
                 console.log('텍스트 추출 모달에서 확장 완료');
+                spin(false);
             }
             break;
         case 'rewrite':
             console.log('재작성 실행');
+            spin(true);
 
             try {
                 const data = await postJSON(`${BASE_URL}/mistralRewrite`, {
@@ -7345,10 +7360,13 @@ menu.addEventListener('click', async (e) => {
                 alert('재작성 실패: ' + e.message);
             } finally {
                 console.log('텍스트 추출 모달에서 재작성 완료');
+                spin(false);
             }
             break;
         case 'honorific':
             console.log('높임말 실행');
+            spin(true);
+
             try {
                 const data = await postJSON(`${BASE_URL}/cohereHonorific`, {
                     content,
@@ -7367,10 +7385,13 @@ menu.addEventListener('click', async (e) => {
                 alert('높임말 변환 실패: ' + e.message);
             } finally {
                 console.log('텍스트 추출 모달에서 높임말 완료');
+                spin(false);
             }
             break;
         case 'informal':
             console.log('반말 실행');
+            spin(true);
+
             try {
                 const data = await postJSON(`${BASE_URL}/cohereInformal`, {
                     content,
@@ -7389,10 +7410,13 @@ menu.addEventListener('click', async (e) => {
                 alert('반말 변환 실패: ' + e.message);
             } finally {
                 console.log('텍스트 추출 모달에서 반말 완료');
+                spin(false);
             }
             break;
         case 'grammar':
             console.log('문법 교정 실행');
+            spin(true);
+
             if (content.length >= 300) {
                 alert(
                     '글자 수가 300자를 초과했습니다. 300자 미만으로 써주십시오.'
@@ -7418,6 +7442,7 @@ menu.addEventListener('click', async (e) => {
                 alert('문법 교정 실패: ' + e.message);
             } finally {
                 console.log('텍스트 추출 모달에서 문법 교정 완료');
+                spin(false);
             }
             break;
     }
@@ -7459,6 +7484,7 @@ styleSubmenu.addEventListener('click', async (e) => {
     const subaction = e.target.dataset.subaction;
     if (!subaction) return;
     console.log(`문체 변경 → ${subaction} 실행`);
+    spin(true);
     const { text, apply } = getQuillSelectionOrAll2();
     const content = (text || '').trim();
 
@@ -7490,6 +7516,7 @@ styleSubmenu.addEventListener('click', async (e) => {
     } finally {
         menu.hidden = true;
         styleSubmenu.hidden = true;
+        spin(false);
     }
 });
 
@@ -7501,6 +7528,7 @@ translateSubmenu.addEventListener('click', async (e) => {
     const { text, apply } = getQuillSelectionOrAll2();
     const content = (text || '').trim();
     if (!content) return alert('내용을 입력하세요.');
+    spin(true);
 
     try {
         const data = await postJSON(`${BASE_URL}/translate`, {
@@ -7523,6 +7551,7 @@ translateSubmenu.addEventListener('click', async (e) => {
     } finally {
         menu.hidden = true;
         translateSubmenu.hidden = true;
+        spin(false);
     }
 });
 
@@ -7732,4 +7761,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
