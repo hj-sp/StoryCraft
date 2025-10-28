@@ -433,20 +433,20 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
             body, ocr_list = extract_from_hwpx_zip(binary)
 
         elif ext == "hwp":
-            # 1) (가능하면) hwp5txt 로 본문 추출
+           
             body = extract_text_from_hwp_hwp5txt(binary)
-            # 2) BinData 이미지 OCR 도 병행
+         
             _, ocr_list = extract_from_hwp_images_only(binary)
 
         else:
-            # 모르는 포맷: 일단 텍스트처럼 디코드 시도
+           
             body = detect_text_encoding_and_decode(binary)
 
     except Exception as e:
-        # 개별 파서 실패 시에도 가능한 정보 반환
+        
         print("parse error:", type(e).__name__, e)
 
-    # 최종 합치기 (프론트 변경 없이 text 하나로 반환)
+    # 최종 합치기
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
@@ -456,6 +456,25 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
         return ocr_text
     else:
         return body
+    
+def detect_text_encoding_and_decode(raw: bytes) -> str:
+    """
+    bytes → str 디코딩. chardet로 인코딩 추정, 실패 시 안전한 폴백.
+    """
+    if not raw:
+        return ""
+    try:
+        import chardet
+        guess = chardet.detect(raw) or {}
+        enc = (guess.get("encoding") or "utf-8").strip()
+       
+        return raw.decode(enc, errors="replace")
+    except Exception:
+        try:
+            return raw.decode("utf-8", errors="replace")
+        except Exception:
+            return raw.decode("latin-1", errors="replace")
+
 
 
 load_dotenv()
