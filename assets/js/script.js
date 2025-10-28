@@ -6606,265 +6606,253 @@ async function imagePromptChange() {
                 break;
             }
 
-            case 'expand': {
-                const $ = (sel) =>
-                    document.getElementById('scDrawer')?.querySelector(sel);
-                const drawer = document.getElementById('scDrawer');
-                drawer?.setAttribute('data-panel', 'expand');
 
-                const btnRun = $('#scExpandRun');
-                const btnApply = $('#exApply');
-                const btnCopy = $('#exCopy');
+case 'expand': {
+  const $ = (sel) => document.getElementById('scDrawer')?.querySelector(sel);
+  const drawer = document.getElementById('scDrawer');
+  drawer?.setAttribute('data-panel', 'expand');
 
-                const selCount = $('#exSelCount');
-                const wrapCustom = $('#exCustomWrap');
-                const inputCustom = $('#exCustomInput');
+  const btnRun   = $('#scExpandRun');
+  const btnApply = $('#exApply');
+  const btnCopy  = $('#exCopy');
 
-                // 모드 & 옵션
-                const modeWrap = $('#exModeWrap');
-                const lenLevelSel = $('#exLenLevel'); // 'low' | 'medium' | 'high' | (xhigh)
-                const nSent = $('#exSentences'); // 숫자 (1~50)
+  const selCount    = $('#exSelCount');
+  const wrapCustom  = $('#exCustomWrap');
+  const inputCustom = $('#exCustomInput');
 
-                // 길이 레벨 → % 매핑 (백엔드 호환)
-                const LEN_PRESET = {
-                    low: 20,
-                    medium: 50,
-                    high: 80,
-                    xhigh: 100,
-                };
+  // 모드 & 옵션
+  const modeWrap    = $('#exModeWrap');
+  const lenLevelSel = $('#exLenLevel');   // 'low' | 'medium' | 'high' | 'xhigh'
+  const nSent       = $('#exSentences');  // 1~50
 
-                let last = null; // { out, scope, rangeSnap, first }
+  // 길이 레벨
+  const LEN_PRESET = { low: 20, medium: 50, high: 80, xhigh: 100 };
 
-                // 선택 길이 메타
+  let last = null; 
 
-                function updateSelectionMeta() {
-                    try {
-                        const q = window.quill;
-                        if (!q) {
-                            selCount && (selCount.textContent = '');
-                            return;
-                        }
-                        const sel = q.getSelection();
-                        selCount.textContent =
-                            sel && sel.length > 0
-                                ? `(${sel.length.toLocaleString()}자 선택됨)`
-                                : '(선택 없음)';
-                    } catch {}
-                }
-                updateSelectionMeta();
-                if (window.quill?.on) {
-                    window.quill.on('selection-change', updateSelectionMeta);
-                    window.quill.on('text-change', updateSelectionMeta);
-                }
+  // 선택 길이 
+  function updateSelectionMeta() {
+    try {
+      const q = window.quill;
+      if (!q) {
+        selCount && (selCount.textContent = '');
+        return;
+      }
+      const sel = q.getSelection();
+      selCount.textContent =
+        sel && sel.length > 0
+          ? `(${sel.length.toLocaleString()}자 선택됨)`
+          : '(선택 없음)';
+    } catch {}
+  }
+  updateSelectionMeta();
+  if (window.quill?.on) {
+    window.quill.on('selection-change', updateSelectionMeta);
+    window.quill.on('text-change', updateSelectionMeta);
+  }
 
-                // 범위 라디오
-                function currentScope() {
-                    const r = document.querySelector(
-                        '#scDrawer input[name="exScope"]:checked'
-                    );
-                    return r ? r.value : 'doc';
-                }
-                function syncCustomWrap() {
-                    const show = currentScope() === 'input';
-                    wrapCustom.hidden = !show;
-                    if (show) setTimeout(() => inputCustom?.focus(), 0);
-                }
-                document
-                    .querySelectorAll('#scDrawer input[name="exScope"]')
-                    .forEach((r) => {
-                        r.addEventListener('change', syncCustomWrap);
-                    });
-                syncCustomWrap();
 
-                // 모드 라디오
-                function currentMode() {
-                    const r = document.querySelector(
-                        '#scDrawer input[name="exMode"]:checked'
-                    );
-                    return r ? r.value : 'length';
-                }
-                function syncExCtrls() {
-                    if (!drawer) return;
-                    const mode = currentMode && currentMode();
-                    if (!mode) return;
-                    const lenCtrls =
-                        drawer.querySelectorAll?.('.ex-ctrl--length') || [];
-                    const sentCtrls =
-                        drawer.querySelectorAll?.('.ex-ctrl--sentences') || [];
-                    [...lenCtrls].forEach((el) =>
-                        setHiddenSafe(el, mode !== 'length')
-                    );
-                    [...sentCtrls].forEach((el) =>
-                        setHiddenSafe(el, mode !== 'sentences')
-                    );
-                }
-                if (modeWrap) modeWrap.addEventListener('change', syncExCtrls);
-                document.addEventListener('DOMContentLoaded', syncExCtrls);
+  function currentScope() {
+    const r = document.querySelector('#scDrawer input[name="exScope"]:checked');
+    return r ? r.value : 'doc'; 
+  }
+  function syncCustomWrap() {
+    const show = currentScope() === 'input';
+    if (wrapCustom) wrapCustom.hidden = !show;
+    if (show) setTimeout(() => inputCustom?.focus(), 0);
+  }
+  document
+    .querySelectorAll('#scDrawer input[name="exScope"]')
+    .forEach((r) => r.addEventListener('change', syncCustomWrap));
+  syncCustomWrap();
 
-                // 실행
-                btnRun?.addEventListener('click', async () => {
-                    const scope = currentScope();
-                    const mode = currentMode();
-                    const q = window.quill;
-                    const area = $('#exResult');
-                    if (area) createInlineSpinner(area, '확장 중…');
 
-                    let text = '';
-                    let range = null;
+  function currentMode() {
+    const r = document.querySelector('#scDrawer input[name="exMode"]:checked');
+    return r ? r.value : 'length'; 
+  }
+  function setHiddenSafe(el, v) { if (el) el.hidden = !!v; }
+  function syncExCtrls() {
+    if (!drawer) return;
+    const mode = currentMode && currentMode();
+    if (!mode) return;
 
-                    if (scope === 'doc') {
-                        text = q
-                            ? q.getText(0, Math.max(0, q.getLength() - 1))
-                            : '';
-                        if (!text.trim()) {
-                            if (area) removeInlineSpinner(area);
-                            if (area) area.textContent = '문서가 비어 있어요.';
-                            return;
-                        }
-                    } else if (scope === 'sel') {
-                        if (!q) {
-                            if (area) removeInlineSpinner(area);
-                            if (area) area.textContent = '에디터가 없어요.';
-                            return;
-                        }
-                        const sel = q.getSelection();
-                        if (!sel || sel.length === 0) {
-                            if (area) removeInlineSpinner(area);
-                            if (area) removeInlineSpinner(area);
-                            if (area)
-                                area.textContent = '선택된 내용이 없어요.';
-                            return;
-                        }
-                        text = q.getText(sel.index, sel.length);
-                        range = sel; // 첫 1회 적용에만 쓰는 스냅샷
-                    } else {
-                        text = (inputCustom?.value || '').trim();
-                        if (!text) {
-                            if (area) removeInlineSpinner(area);
-                            if (area)
-                                area.textContent =
-                                    '확장할 텍스트를 입력해 주세요.';
-                            return;
-                        }
-                    }
+    const lenCtrls  = drawer.querySelectorAll?.('.ex-ctrl--length')    || [];
+    const sentCtrls = drawer.querySelectorAll?.('.ex-ctrl--sentences') || [];
 
-                    // 페이로드: 선택된 모드의 필드만 전송(배타적)
-                    const payload = { content: text, mode };
+   
+    lenCtrls.forEach((el)  => setHiddenSafe(el,  mode !== 'length'));
+    sentCtrls.forEach((el) => setHiddenSafe(el, mode !== 'sentences'));
+  }
+  if (modeWrap) modeWrap.addEventListener('change', syncExCtrls);
+ 
+  syncExCtrls();
 
-                    if (mode === 'length') {
-                        const levelKey = lenLevelSel?.value || 'medium';
-                        payload.length_level = levelKey;
-                    } else {
-                        // sentences 모드
-                        const addN = Math.max(
-                            1,
-                            Math.min(50, parseInt(nSent?.value || '1', 10))
-                        );
-                        payload.add_sentences = addN;
-                        // 길이 증가는 아예 보내지 않음
-                    }
+ 
+  btnRun?.addEventListener('click', async () => {
+    const scope = currentScope();
+    const mode  = currentMode();
+    const q     = window.quill;
+    const area  = $('#exResult');
 
-                    btnApply.disabled = btnCopy.disabled = true;
+    if (area) createInlineSpinner(area, '확장 중…');
 
-                    try {
-                        const r = await postJSON(`${BASE_URL}/expand`, payload);
-                        const out = (r?.result || r?.text || '')
-                            .toString()
-                            .trim();
-                        if (!out) {
-                            if (area) removeInlineSpinner(area);
-                            if (area) area.textContent = '빈 결과입니다.';
-                            return;
-                        }
 
-                        if (area) removeInlineSpinner(area);
-                        if (area) area.textContent = out;
-                        btnApply.disabled = btnCopy.disabled = !(
-                            out && out.length
-                        );
+    let text   = '';
+    let range  = null;        
+    let insertPos = null;      
 
-                        // 직접 입력이면 결과로 스크롤
-                        if (scope === 'input') {
-                            document
-                                .getElementById('exResult')
-                                ?.scrollIntoView({
-                                    block: 'start',
-                                    behavior: 'smooth',
-                                });
-                        }
+    if (scope === 'doc') {
+      text = q ? q.getText(0, Math.max(0, q.getLength() - 1)) : '';
+      if (!text.trim()) {
+        if (area) removeInlineSpinner(area);
+        if (area) area.textContent = '문서가 비어 있어요.';
+        return;
+      }
+     
+      insertPos = q ? (q.getLength() - 1) : 0;
 
-                        // 첫 1회만 range 스냅샷 사용, 이후엔 현재 드래그/커서 기준
-                        last = {
-                            out,
-                            scope,
-                            rangeSnap: range || null,
-                            first: true,
-                        };
-                    } catch (e) {
-                        if (area) removeInlineSpinner(area);
-                        if (area)
-                            area.textContent =
-                                '확장 실패: ' + (e?.message || e);
-                    }
-                });
+    } else if (scope === 'sel') {
+      if (!q) {
+        if (area) removeInlineSpinner(area);
+        if (area) area.textContent = '에디터가 없어요.';
+        return;
+      }
+      const sel = q.getSelection();
+      if (!sel || sel.length === 0) {
+        if (area) removeInlineSpinner(area);
+        if (area) area.textContent = '선택된 내용이 없어요.';
+        return;
+      }
+      text  = q.getText(sel.index, sel.length);
+      range = sel;
+      // 선택 뒤에 추가
+      insertPos = sel.index + sel.length;
 
-                // 적용: 첫 클릭만 스냅샷 → 이후 현재 드래그/커서 기준
-                btnApply?.addEventListener('click', () => {
-                    if (!last?.out) return;
-                    const q = window.quill;
-                    if (!q) return;
+    } else { 
+      text = (inputCustom?.value || '').trim();
+      if (!text) {
+        if (area) removeInlineSpinner(area);
+        if (area) area.textContent = '확장할 텍스트를 입력해 주세요.';
+        return;
+      }
+    
+      insertPos = null;
+    }
 
-                    const docLen = Math.max(0, q.getLength() - 1);
+    try {
+      
+      if (mode === 'length') {
+      
+        const levelKey = lenLevelSel?.value || 'medium';
+        const payload = {
+          content: text,
+          mode: 'length',
+          length_level: levelKey
+        };
+        const r = await postJSON(`${BASE_URL}/expand`, payload);
+        const out = (r?.result || r?.text || '').toString().trim();
+        if (!out) {
+          if (area) removeInlineSpinner(area);
+          if (area) area.textContent = '빈 결과입니다.';
+          return;
+        }
 
-                    if (last.scope === 'doc' && last.first) {
-                        q.setText(last.out);
-                        q.setSelection(
-                            Math.max(0, last.out.length - 1),
-                            0,
-                            'silent'
-                        );
-                        last.first = false;
-                        last.rangeSnap = null;
-                        return;
-                    }
+        if (area) removeInlineSpinner(area);
+        if (area) area.textContent = out;
 
-                    const liveSel = q.getSelection(true);
-                    const sel =
-                        last.first && last.rangeSnap
-                            ? last.rangeSnap
-                            : liveSel || { index: docLen, length: 0 };
+        // 적용/복사 
+        if (btnApply) btnApply.disabled = !(out && out.length);
+        if (btnCopy)  btnCopy.disabled  = !(out && out.length);
 
-                    if (sel.length > 0) {
-                        q.deleteText(sel.index, sel.length, 'user');
-                        q.insertText(sel.index, last.out, 'user');
-                        q.setSelection(
-                            sel.index + last.out.length,
-                            0,
-                            'silent'
-                        );
-                    } else {
-                        const pos =
-                            typeof sel.index === 'number' ? sel.index : docLen;
-                        q.insertText(pos, last.out, 'user');
-                        q.setSelection(pos + last.out.length, 0, 'silent');
-                    }
+      } else {
+       
+        const addN = Math.max(1, Math.min(50, parseInt(nSent?.value || '1', 10)));
 
-                    last.first = false;
-                    last.rangeSnap = null;
-                });
+        let before = '';
+        let after  = '';
+        if (scope === 'input') {
+          before = text; 
+          after  = '';
+        } else if (q) {
+          const pos = Number.isFinite(insertPos) ? insertPos : (q.getSelection(true)?.index ?? (q.getLength() - 1));
+          before = q.getText(0, pos);
+          
+          const tailLen = Math.max(0, q.getLength() - 1 - pos);
+          after  = q.getText(pos, tailLen);
+        }
 
-                // 복사
-                btnCopy?.addEventListener('click', async () => {
-                    const txt = ($('#exResult')?.textContent || '').trim();
-                    if (!txt) return;
-                    await navigator.clipboard.writeText(txt);
-                    const b = btnCopy;
-                    b.textContent = '복사됨';
-                    setTimeout(() => (b.textContent = '복사'), 1200);
-                });
+        
+        const r = await postJSON(`${BASE_URL}/promptAdd`, {
+          before,
+          after,
+          prompt: `이 위치에 ${addN}문장을 자연스럽게 덧붙여 주세요.`
+        });
 
-                break;
+        const onlyAdded = (r?.result || r?.text || '').toString().trim();
+        if (!onlyAdded) {
+          if (area) removeInlineSpinner(area);
+          if (area) area.textContent = '빈 결과입니다.';
+          return;
+        }
+
+        if (area) removeInlineSpinner(area);
+        if (area) area.textContent = onlyAdded;
+
+        if (btnApply) btnApply.disabled = false;
+        if (btnCopy)  btnCopy.disabled  = false;
+
+        
+        btnApply && (btnApply.onclick = () => {
+          try {
+            const qq = window.quill;
+            if (!qq) return;
+            let pos;
+            if (scope === 'doc') {
+              pos = qq.getLength() - 1; 
+            } else if (scope === 'sel') {
+              pos = range ? (range.index + range.length) : (qq.getSelection(true)?.index ?? (qq.getLength() - 1));
+            } else {
+              
+              return;
             }
+            const attrs = qq.getFormat(Math.max(0, pos - 1), 1);
+            qq.insertText(pos, onlyAdded, attrs, 'user');
+            qq.setSelection(pos + onlyAdded.length, 0, 'silent');
+          } catch {}
+        });
+      }
+
+      // 복사
+      btnCopy && (btnCopy.onclick = async () => {
+        try {
+          const txt = $('#exResult')?.textContent || '';
+          await navigator.clipboard?.writeText(txt);
+          const b = btnCopy;
+          b.textContent = '복사됨';
+          setTimeout(() => (b.textContent = '복사'), 1200);
+        } catch {}
+      });
+
+     
+      if (scope === 'input') {
+        document.getElementById('exResult')?.scrollIntoView({
+          block: 'start', behavior: 'smooth',
+        });
+      }
+
+      last = { out: ($('#exResult')?.textContent || ''), scope, rangeSnap: range, first: true };
+
+    } catch (err) {
+      if (area) removeInlineSpinner(area);
+      if (area) area.textContent = '요청 중 오류가 발생했습니다.';
+      console.error(err);
+    }
+  });
+
+  break;
+}
+
 
             case 'grammar': {
                 const $ = (sel) =>
