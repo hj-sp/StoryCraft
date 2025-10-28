@@ -5640,3 +5640,30 @@ main.page-wrap {
     flex: 1 1 100%;
     width: 100%;
 }
+
+.page-inputResult .right,
+.page-inputResult .result-wrap,
+#resultArea {
+  display: block !important;   
+  align-self: stretch !important;
+}
+
+.page-inputResult .right,
+.page-inputResult .result-wrap {
+  justify-content: flex-start !important; 
+  align-items: flex-start !important;    
+}
+
+
+#resultArea p { margin-top: 0; }
+
+/* 결과 패널은 항상 상단 정렬 */
+.page-inputResult .result-wrap {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+
+#resultArea {
+  display: block !important;
+  align-self: stretch !important;
+}

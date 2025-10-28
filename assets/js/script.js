@@ -984,101 +984,120 @@ async function applyStyle() {
 }
 
 async function summarizeText() {
-    const userInput = document.getElementById('userInput').value.trim();
-    const resultArea = document.getElementById('resultArea');
-    if (!resultArea) return;
-    spin(true);
+  const userInput = document.getElementById('userInput').value.trim();
+  const resultArea = document.getElementById('resultArea');
+  if (!resultArea) return;
+  spin(true);
 
-    if (!userInput) {
-        spin(false);
-        alert('입력된 문장이 없습니다.');
-        return;
+  if (!userInput) {
+    spin(false);
+    alert('입력된 문장이 없습니다.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: userInput }),
+    });
+    const data = await res.json();
+
+    // 원문 결과
+    const text = (data?.result || '').trim();
+
+    // ⚠️ 에이전트가 에코하는 "요약 모드: ..." 라벨 제거(불릿/볼드 변형 포함)
+    const cleanText = text.replace(
+      /^\s*(?:[-*•]\s*)?(?:\*{1,3})?\s*요약\s*모드\s*:\s*[^\n]*\n+/i,
+      ''
+    ).trim();
+
+    // 결과영역 초기화 후 재작성과 동일하게 내부 래퍼 div 생성
+    resultArea.innerHTML = '';
+    const box = document.createElement('div');
+    resultArea.appendChild(box);
+    box.innerHTML = `<p style="white-space: pre-wrap;">${cleanText}</p>`;
+
+    // 우측 패널 상단 정렬 강제(컨테이너가 flex여도 위로 붙게)
+    const pane = resultArea.closest('.result-wrap') || resultArea.parentElement;
+    if (pane) {
+      pane.style.alignItems = 'flex-start';
+      pane.style.justifyContent = 'flex-start';
+      // 필요 시 주석 해제: pane.style.display = 'block';
+    }
+    resultArea.scrollTop = 0;
+
+    // PDF 저장 버튼(있을 때만) 안전 재바인딩
+    const pdfBtn = document.getElementById('pdfDownloadBtn');
+    if (pdfBtn) {
+      const newBtn = pdfBtn.cloneNode(true);
+      newBtn.id = 'pdfDownloadBtn';
+      pdfBtn.replaceWith(newBtn);
+      newBtn.addEventListener('click', () => saveAsPDF(resultArea, '요약.pdf'));
     }
 
-    try {
-        const res = await fetch(`${BASE_URL}/summary`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: userInput }),
-        });
-        const data = await res.json();
-
-        const text = (data?.result || '').trim();
-        if (text) {
-            // ✅ 안전하게 표시
-            resultArea.innerHTML = `
-              <p style="white-space: pre-wrap;">${text}</p>
-            `;
-            console.log('🟢 결과 표시됨:', text);
-
-            // ✅ PDF 저장 버튼
-            const pdfBtn = document.getElementById('pdfDownloadBtn');
-            if (pdfBtn) {
-                const newBtn = pdfBtn.cloneNode(true);
-                newBtn.id = 'pdfDownloadBtn';
-                pdfBtn.replaceWith(newBtn);
-                newBtn.addEventListener('click', () =>
-                    saveAsPDF(resultArea, '요약.pdf')
-                );
-            }
-        } else {
-            resultArea.innerHTML = `<p>⚠️ 요약 실패: ${
-                data?.error || '알 수 없는 오류'
-            }</p>`;
-        }
-    } catch (e) {
-        resultArea.innerHTML = '<p>❗요약 요청 중 오류가 발생했습니다.</p>';
-        console.error(e);
-    } finally {
-        spin(false);
-    }
+  } catch (e) {
+    console.error(e);
+    resultArea.innerHTML = '<p>❗요약 요청 중 오류가 발생했습니다.</p>';
+  } finally {
+    spin(false);
+  }
 }
 
 async function expandText() {
-    const userInput = document.getElementById('userInput').value;
-    const resultArea = document.getElementById('resultArea');
-    spin(true);
+  const userInput = document.getElementById('userInput').value;
+  const resultArea = document.getElementById('resultArea');
+  if (!resultArea) return;
+  spin(true);
 
-    if (!userInput.trim()) {
-        spin(false);
-        alert('입력된 문장이 없습니다.');
+  if (!userInput.trim()) {
+    spin(false);
+    alert('입력된 문장이 없습니다.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expand`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: userInput }),
+    });
+
+    const data = await response.json();
+    const expanded = (data?.result || '').trim();
+
+    // 결과영역 초기화 후 내부 래퍼 div 생성(재작성/요약과 동일 구조)
+    resultArea.innerHTML = '';
+    const box = document.createElement('div');
+    resultArea.appendChild(box);
+    box.innerHTML = `<p style="white-space: pre-wrap;">${expanded}</p>`;
+
+    // 우측 패널 상단 정렬 강제
+    const pane = resultArea.closest('.result-wrap') || resultArea.parentElement;
+    if (pane) {
+      pane.style.alignItems = 'flex-start';
+      pane.style.justifyContent = 'flex-start';
+      // 필요 시 주석 해제: pane.style.display = 'block';
+    }
+    resultArea.scrollTop = 0;
+
+    // PDF 저장 버튼(있을 때만) 안전 재바인딩
+    const pdfBtn = document.getElementById('pdfDownloadBtn');
+    if (pdfBtn) {
+      const newBtn = pdfBtn.cloneNode(true);
+      newBtn.id = 'pdfDownloadBtn';
+      pdfBtn.replaceWith(newBtn);
+      newBtn.addEventListener('click', () => saveAsPDF(resultArea, '확장.pdf'));
     }
 
-    try {
-        const response = await fetch(`${BASE_URL}/expand`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: userInput }),
-        });
-
-        const data = await response.json();
-
-        if (data.result) {
-            resultArea.innerHTML = `
-              <p style="white-space: pre-wrap;">${data.result}</p>
-            `;
-
-            const pdfBtn = document.getElementById('pdfDownloadBtn');
-            if (pdfBtn) {
-                const newBtn = pdfBtn.cloneNode(true);
-                newBtn.id = 'pdfDownloadBtn';
-                pdfBtn.replaceWith(newBtn);
-                newBtn.addEventListener('click', () =>
-                    saveAsPDF(content, '확장.pdf')
-                );
-            }
-        } else {
-            resultArea.innerText = `⚠️ 확장 실패: ${
-                data.error || '알 수 없는 오류'
-            }`;
-        }
-    } catch (error) {
-        console.error('확장 요청 중 오류:', error);
-        resultArea.innerText = '❗확장 요청 중 오류가 발생했습니다.';
-    } finally {
-        spin(false);
-    }
+  } catch (error) {
+    console.error('확장 요청 중 오류:', error);
+    resultArea.innerHTML = '<p>❗확장 요청 중 오류가 발생했습니다.</p>';
+  } finally {
+    spin(false);
+  }
 }
+
 
 async function mistralGrammar() {
     spin(true);

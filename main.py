@@ -446,7 +446,7 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
         # 개별 파서 실패 시에도 가능한 정보 반환
         print("parse error:", type(e).__name__, e)
 
-    # 최종 합치기
+    # 최종 합치기 (프론트 변경 없이 text 하나로 반환)
     body = (body or "").strip()
     ocr_text = "\n\n".join([t for t in (ocr_list or []) if t]).strip()
 
@@ -668,6 +668,19 @@ async def mistral_rewrite(content: TextInput):
 
     return {"result": message}
 
+def strip_mode_banner(s: str) -> str:
+    if not s:
+        return s
+    # 맨 앞줄에 오는 "• **요약 모드: basic**" 같은 변형들 일괄 제거
+    s = re.sub(
+        r'^\s*(?:[-*•]\s*)?(?:\*{1,3})?\s*요약\s*모드\s*:\s*[^\n]*\n+',
+        '',
+        s,
+        flags=re.IGNORECASE
+    )
+    return s.lstrip()
+
+
 @app.post("/summary")
 async def summarize(content: TextInput):
     headers = {
@@ -677,17 +690,23 @@ async def summarize(content: TextInput):
     payload = {
         "agent_id": AGENT_ID_SUMMARY,
         "messages": [
-            {"role": "user", "content": f"다음 글을 최대한 간결하게 요약해줘. 대신 핵심내용은 포함해줘:\n\n{content.content}"}
+            {
+                "role": "user",
+                "content": f"다음 글을 최대한 간결하게 요약해줘. 대신 핵심내용은 포함해줘:\n\n{content.content}"
+            }
         ]
     }
     response = requests.post(
-        "https://api.mistral.ai/v1/agents/completions", headers=headers, json=payload)
+        "https://api.mistral.ai/v1/agents/completions",
+        headers=headers, json=payload
+    )
     result = response.json()
     try:
         message = result["choices"][0]["message"]["content"]
     except (KeyError, IndexError):
         return {"error": "Mistral 요약 오류"}
-    return {"result": message}
+    # ✅ 라벨 제거
+    return {"result": strip_mode_banner(message)}
 
 @app.post("/expand")
 async def expand(payload: ExpandInput):
