@@ -474,8 +474,7 @@ def detect_text_encoding_and_decode(raw: bytes) -> str:
             return raw.decode("utf-8", errors="replace")
         except Exception:
             return raw.decode("latin-1", errors="replace")
-
-
+        
 
 load_dotenv()
 
@@ -1647,11 +1646,35 @@ async def editorGrammar(content: TextInput):
 @app.post("/promptChange")
 async def expand(request: Request):
     body = await request.json()
+    content = body.get('content', '')
+    prompt = body.get('prompt', '').strip()
 
-    content = body.get('content')
-    prompt = body.get('prompt')
-    print(content)
-    print(prompt)
+    # ✅ 프롬프트가 "교수님께 보낼 이메일 형식으로 작성" 포함 시 즉시 반환
+    if "교수님" in prompt and "이메일" in prompt:
+        demo_email = """\
+[발표용 데모 응답 - 교수님 이메일 예시]
+
+제목: 상명대학교 핵심역량 진단 관련 공지
+
+
+안녕하십니까, 교수님. 상명대학교 교육혁신추진팀입니다. 저희는 앞으로 다가올 2025년 9월 4일부터 10월 10일까지 핵심역량 진단을 진행하는 것을 알립니다. 이 진단은 상명대학교의 모든 학생들이 필수로 참여해야 합니다. 
+
+참여방법은 샘물통합정보시스템을 통해 접속하시어, '학생기본' 탭에서 '핵심역량진단'을 선택 후 '역량진단평가'를 진행하시면 됩니다. 결과는 진단 후 다음날 확인이 가능하며, '학생기본' 탭에서 '핵심역량진단' 섹션의 '역량진단평가현황'에서 확인하실 수 있습니다. 
+
+문의사항이 있으실 경우 (서울) 02-2287-6456, (천안) 041-550-5508로 연락주시면 감사하겠습니다.
+
+또한 재학 중인 학생이 SM-IN 핵심역량(전문지식탐구, 창의적문제해결, 융복합, 다양성존중, 윤리실천)을 우수하게 함양하였을 때, 그 학생은 졸업 시 최우수 인증자로 인정받아 총장 명의로 상장을 받게 됩니다. 학생들에게 이 사항을 알려주시어, 매년 1회씩 진단에 참여하고 자신의 역량 점수 변화를 확인하는 것이 중요함을 전달해주세요.
+
+무엇보다 학생들에게 이 과정이 자신들의 성장에 도움이 되도록 안내해주실 수 있도록 부탁드립니다. 
+
+
+감사합니다,
+
+상명대학교 교육혁신추진팀
+"""
+        return {"result": demo_email}
+
+    # ✅ 일반 프롬프트 처리 (기존 코드)
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
@@ -1661,6 +1684,7 @@ async def expand(request: Request):
     )
     message = response.choices[0].message.content
     return {"result": message}
+
 
 @app.post("/promptAdd")
 async def expand(request: Request):
