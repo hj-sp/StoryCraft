@@ -1061,6 +1061,8 @@ async function expandText() {
         return;
     }
 
+    let expanded = '';
+
     try {
         const response = await fetch(`${BASE_URL}/expand`, {
             method: 'POST',
@@ -1069,41 +1071,68 @@ async function expandText() {
         });
 
         const data = await response.json();
-        const expanded = (data?.result || '').trim();
+        expanded = (data?.result || '').trim();
 
-        // 결과영역 초기화 후 내부 래퍼 div 생성(재작성/요약과 동일 구조)
+        // 결과 영역 초기화 후 표시 (기존 동작 유지)
         resultArea.innerHTML = '';
         const box = document.createElement('div');
         resultArea.appendChild(box);
         box.innerHTML = `<p style="white-space: pre-wrap;">${expanded}</p>`;
 
-        // 우측 패널 상단 정렬 강제
-        const pane =
-            resultArea.closest('.result-wrap') || resultArea.parentElement;
+        // 패널 정렬 보정
+        const pane = resultArea.closest('.result-wrap') || resultArea.parentElement;
         if (pane) {
             pane.style.alignItems = 'flex-start';
             pane.style.justifyContent = 'flex-start';
-            // 필요 시 주석 해제: pane.style.display = 'block';
         }
         resultArea.scrollTop = 0;
 
-        // PDF 저장 버튼(있을 때만) 안전 재바인딩
+        // PDF 저장 버튼 재바인딩 (있을 때만)
         const pdfBtn = document.getElementById('pdfDownloadBtn');
         if (pdfBtn) {
             const newBtn = pdfBtn.cloneNode(true);
             newBtn.id = 'pdfDownloadBtn';
             pdfBtn.replaceWith(newBtn);
-            newBtn.addEventListener('click', () =>
-                saveAsPDF(resultArea, '확장.pdf')
-            );
+            newBtn.addEventListener('click', () => saveAsPDF(resultArea, '확장.pdf'));
         }
+
     } catch (error) {
         console.error('확장 요청 중 오류:', error);
         resultArea.innerHTML = '<p>❗확장 요청 중 오류가 발생했습니다.</p>';
+    }
+
+    // ✅ 확장 결과를 에디터(Quill)에 실제 적용
+    try {
+        const q = window.quill;
+        if (q && expanded) {
+            // 선택 복원 우선순위: 이전 저장 선택 → 마지막 범위 → 현재 라이브 선택
+            const snap =
+                window.__chatSelStable ||
+                window.__lastQuillRange ||
+                q.getSelection(true);
+
+            // 선택 영역이 있고, "전체 1회 강제 적용" 플래그가 없으면 선택 덮어쓰기
+            if (snap && Number.isFinite(snap.index) && snap.length > 0 && !window.__forceFullOnce) {
+                q.deleteText(snap.index, snap.length, 'user');
+                q.insertText(snap.index, expanded, 'user');
+                // 커서는 삽입 끝으로
+                try { q.setSelection(snap.index + expanded.length, 0, 'silent'); } catch {}
+            } else {
+                
+                q.setText(expanded);
+                try { q.setSelection(Math.max(0, q.getLength() - 1), 0, 'silent'); } catch {}
+            }
+
+            
+            window.__forceFullOnce = false;
+        }
+    } catch (err) {
+        console.warn('확장 결과 에디터 적용 실패:', err);
     } finally {
         spin(false);
     }
 }
+
 
 async function mistralGrammar() {
     spin(true);
@@ -6760,6 +6789,74 @@ case 'expand': {
 
         if (area) removeInlineSpinner(area);
         if (area) area.textContent = out;
+
+if (btnApply) {
+  
+  btnApply.onclick = null;
+
+  btnApply.onclick = () => {
+    const qq = window.quill;
+    if (!qq) return;
+
+    try { qq.focus(); } catch {}
+    let live = null;
+    try { live = qq.getSelection(true); } catch {}
+
+
+    const once = btnApply.dataset.once === '1';
+
+
+    const textToInsert = out || '';
+    if (!textToInsert) return;
+
+   
+    const hasLiveSel = !!(live && typeof live.index === 'number');
+    const hasRange    = hasLiveSel && (live.length > 0);
+
+   
+    try {
+      if (!once) {
+        if (scope === 'doc') {
+      
+          qq.setText(textToInsert);
+          qq.setSelection(Math.max(0, textToInsert.length - 1), 0, 'silent');
+          btnApply.dataset.once = '1'; // 
+          return;
+        }
+        if (scope === 'sel' && hasRange) {
+    
+          const idx   = live.index;
+          const len   = live.length;
+          const attrs = qq.getFormat(Math.max(0, idx - 1), 1);
+          qq.deleteText(idx, len, 'user');
+          qq.insertText(idx, textToInsert, attrs, 'user');
+          qq.setSelection(idx + textToInsert.length, 0, 'silent');
+          btnApply.dataset.once = '1';
+          return;
+        }
+       
+      }
+
+     
+      let pos = 0;
+      if (hasLiveSel) {
+        
+        pos = live.index + (live.length || 0);
+      } else {
+       
+        pos = Math.max(0, qq.getLength() - 1);
+      }
+      const attrs = qq.getFormat(Math.max(0, pos - 1), 1);
+      qq.insertText(pos, textToInsert, attrs, 'user');
+      qq.setSelection(pos + textToInsert.length, 0, 'silent');
+      btnApply.dataset.once = '1';
+    } catch (e) {
+      
+      try { console.warn('[apply length] failed:', e); } catch {}
+    }
+  };
+}
+
 
         // 적용/복사 
         if (btnApply) btnApply.disabled = !(out && out.length);

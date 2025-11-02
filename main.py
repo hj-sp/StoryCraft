@@ -433,17 +433,17 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
             body, ocr_list = extract_from_hwpx_zip(binary)
 
         elif ext == "hwp":
-           
+
             body = extract_text_from_hwp_hwp5txt(binary)
-         
+
             _, ocr_list = extract_from_hwp_images_only(binary)
 
         else:
-           
+
             body = detect_text_encoding_and_decode(binary)
 
     except Exception as e:
-        
+
         print("parse error:", type(e).__name__, e)
 
     # 최종 합치기
@@ -456,7 +456,7 @@ def extract_all_text_and_images(binary: bytes, filename: str) -> str:
         return ocr_text
     else:
         return body
-    
+
 def detect_text_encoding_and_decode(raw: bytes) -> str:
     """
     bytes → str 디코딩. chardet로 인코딩 추정, 실패 시 안전한 폴백.
@@ -467,14 +467,14 @@ def detect_text_encoding_and_decode(raw: bytes) -> str:
         import chardet
         guess = chardet.detect(raw) or {}
         enc = (guess.get("encoding") or "utf-8").strip()
-       
+
         return raw.decode(enc, errors="replace")
     except Exception:
         try:
             return raw.decode("utf-8", errors="replace")
         except Exception:
             return raw.decode("latin-1", errors="replace")
-        
+
 
 load_dotenv()
 
@@ -1062,103 +1062,6 @@ async def mistral_grammar(content: TextInput):
 
     return {"result": message}
 
-
-# @app.post("/mistralGrammar2")
-# async def mistral_grammar2(content: TextInput):
-#     start_time = time.perf_counter()  # 처리 시작 시점
-#     # 문장 분리 (마침표, 느낌표, 물음표 등으로 분리)
-#     sentences = split_sentences(content.content)
-#     n = len(sentences)  # 문장 개수(배열 행 개수)
-#     print(n)
-
-#     # 앞뒤 공백 제거
-#     sentences = [s.strip() for s in sentences if s.strip()]
-
-#     # n행 3열 배열 생성: 첫 열에 문장, 나머지 두 열은 빈 문자열 (원문, 교정문, 미스트랄 결과)
-#     array = [[sentence, "", ""] for sentence in sentences]
-#     for row in array:
-#         print(row)
-
-#     # T5 모델 로드
-#     model = T5ForConditionalGeneration.from_pretrained(
-#         "j5ng/et5-typos-corrector")
-#     tokenizer = T5Tokenizer.from_pretrained("j5ng/et5-typos-corrector")
-
-#     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-#     model = model.to(device)
-
-#     for i in range(n):
-#         # 예시 입력 문장
-#         input_text = array[i][0]
-
-#         # 입력 문장 인코딩
-#         input_encoding = tokenizer(
-#             "맞춤법을 고쳐주세요: " + input_text, return_tensors="pt")
-
-#         input_ids = input_encoding.input_ids.to(device)
-#         attention_mask = input_encoding.attention_mask.to(device)
-
-#         # T5 모델 출력 생성
-#         output_encoding = model.generate(
-#             input_ids=input_ids,
-#             attention_mask=attention_mask,
-#             max_length=128,
-#             num_beams=5,
-#             early_stopping=True,
-#         )
-
-#         # 출력 문장 디코딩
-#         output_text = tokenizer.decode(
-#             output_encoding[0], skip_special_tokens=True)
-
-#         array[i][1] = output_text
-
-#     # 역순으로 인덱스를 돌면서 맞춤법이 틀린 게 없는 문장 삭제
-#     for i in reversed(range(len(array))):
-#         if array[i][0] == array[i][1]:
-#             del array[i]
-
-#     for row in array:
-#         print(row)
-
-#     for i in range(len(array)):
-#         mistral_input_text = f"1. {array[i][0]}\n2. {array[i][1]}"
-
-#         headers = {
-#             "Authorization": f"Bearer {MISTRAL_API_KEY_S}",
-#             "Content-Type": "application/json"
-#         }
-#         payload = {
-#             "agent_id": AGENT_ID_GRAMMAR2,
-#             "messages": [
-#                 {"role": "user", "content": mistral_input_text}
-#             ]
-#         }
-#         response = requests.post(
-#             "https://api.mistral.ai/v1/agents/completions",
-#             headers=headers,
-#             json=payload
-#         )
-
-#         if response.status_code != 200:
-#             return {"error": f"HTTP 오류: {response.status_code}", "detail": response.text}
-
-#         result = response.json()
-
-#         try:
-#             message = result["choices"][0]["message"]["content"]
-#             array[i][2] = message  # 응답 결과
-#             print(array[i][2])
-#         except (KeyError, IndexError) as e:
-#             return {"error": "응답 파싱 오류", "detail": str(e), "raw_response": result}
-
-#     end_time = time.perf_counter()
-#     elapsed_time = end_time - start_time
-#     print(f"[총 처리 시간] {elapsed_time:.2f}초")
-
-#     return {"result": array, "arrayLen": len(array)}
-
 def split_sentences(text):
     text = text.strip()
     if not text:
@@ -1636,45 +1539,48 @@ async def editorGrammar(content: TextInput):
     print(f"검사 시간   : {result.time:.4f}초")
     print("-" * 40)
 
+    headers = {
+        "Authorization": f"Bearer {MISTRAL_API_KEY_S}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "agent_id": AGENT_ID_GRAMMAR2,
+        "messages": [
+            {"role": "user", "content": result.checked}
+        ]
+    }
+    response = requests.post(
+        "https://api.mistral.ai/v1/agents/completions",
+        headers=headers,
+        json=payload
+    )
+    if response.status_code != 200:
+        return {"error": f"HTTP 오류: {response.status_code}", "detail": response.text}
+
+    text = response.json()
+
+    try:
+        message = text["choices"][0]["message"]["content"]
+    except (KeyError, IndexError) as e:
+        return {"error": "응답 파싱 오류", "detail": str(e), "raw_response": text}
+
     return {
         "original": result.original,
-        "checked": result.checked,
+        # "checked": result.checked,
         "errors": result.errors,
         # "words": list(result.words.keys()),
         "time": result.time,
+        "checked": message,
     }
+
 @app.post("/promptChange")
 async def expand(request: Request):
     body = await request.json()
-    content = body.get('content', '')
-    prompt = body.get('prompt', '').strip()
 
-    # ✅ 프롬프트가 "교수님께 보낼 이메일 형식으로 작성" 포함 시 즉시 반환
-    if "교수님" in prompt and "이메일" in prompt:
-        demo_email = """\
-[발표용 데모 응답 - 교수님 이메일 예시]
-
-제목: 상명대학교 핵심역량 진단 관련 공지
-
-
-안녕하십니까, 교수님. 상명대학교 교육혁신추진팀입니다. 저희는 앞으로 다가올 2025년 9월 4일부터 10월 10일까지 핵심역량 진단을 진행하는 것을 알립니다. 이 진단은 상명대학교의 모든 학생들이 필수로 참여해야 합니다. 
-
-참여방법은 샘물통합정보시스템을 통해 접속하시어, '학생기본' 탭에서 '핵심역량진단'을 선택 후 '역량진단평가'를 진행하시면 됩니다. 결과는 진단 후 다음날 확인이 가능하며, '학생기본' 탭에서 '핵심역량진단' 섹션의 '역량진단평가현황'에서 확인하실 수 있습니다. 
-
-문의사항이 있으실 경우 (서울) 02-2287-6456, (천안) 041-550-5508로 연락주시면 감사하겠습니다.
-
-또한 재학 중인 학생이 SM-IN 핵심역량(전문지식탐구, 창의적문제해결, 융복합, 다양성존중, 윤리실천)을 우수하게 함양하였을 때, 그 학생은 졸업 시 최우수 인증자로 인정받아 총장 명의로 상장을 받게 됩니다. 학생들에게 이 사항을 알려주시어, 매년 1회씩 진단에 참여하고 자신의 역량 점수 변화를 확인하는 것이 중요함을 전달해주세요.
-
-무엇보다 학생들에게 이 과정이 자신들의 성장에 도움이 되도록 안내해주실 수 있도록 부탁드립니다. 
-
-
-감사합니다,
-
-상명대학교 교육혁신추진팀
-"""
-        return {"result": demo_email}
-
-    # ✅ 일반 프롬프트 처리 (기존 코드)
+    content = body.get('content')
+    prompt = body.get('prompt')
+    print(content)
+    print(prompt)
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
@@ -1684,7 +1590,6 @@ async def expand(request: Request):
     )
     message = response.choices[0].message.content
     return {"result": message}
-
 
 @app.post("/promptAdd")
 async def expand(request: Request):
