@@ -1576,11 +1576,33 @@ async def editorGrammar(content: TextInput):
 @app.post("/promptChange")
 async def expand(request: Request):
     body = await request.json()
+    content = body.get('content', '')
+    prompt = body.get('prompt', '').strip()
 
-    content = body.get('content')
-    prompt = body.get('prompt')
-    print(content)
-    print(prompt)
+    # ✅ 프롬프트가 "교수님께 보낼 이메일 형식으로 작성" 포함 시 즉시 반환
+    if "교수님" in prompt and "이메일" in prompt:
+        demo_email = """\
+제목: 상명대학교 교육혁신추진팀에서 진행하는 핵심역량 진단 시행 안내
+
+안녕하십니까 교수님,
+
+저는 상명대학교 교육혁신추진팀(SM-IN)에서 근무하고 있는 교육혁신관리자입니다. 이번에 전달드리는 내용은 우리 대학의 교육 혁신을 위해 SM-IN 팀이 계획한 핵심역량 진단에 대한 정보입니다.
+
+진단은 상명대학교 전체 재학생을 대상으로 2025년 9월 4일부터 10월 10일까지 진행될 예정이며, 모든 학생들의 참여가 필요합니다. 진단에 참여하려면 샘물통합정보시스템에 접속 후 '학생기본'>'핵심역량진단'>'역량진단평가' 메뉴를 통해 접근할 수 있습니다. 진단 결과는 익일 확인 가능하며, 결과 확인 경로 또한 동일한 경로에서 진행됩니다. 
+
+본 진단의 목적은 학생들이 핵심역량(전문지식탐구, 창의적문제해결, 융복합, 다양성존중, 윤리실천)을 어느 정도 함양하고 있는지 진단하고, 향후 교육 방향을 결정하는 데 도움을 주는 것입니다. 재학 기간 동안 SM-IN 핵심역량을 우수하게 함양한 학생은 최우수인증자로서 졸업 시 총장 명의의 상장(인중서)을 받을 수 있습니다.
+
+그러니 매년 1회씩 진단에 참여하여 자신의 역량점수 변화를 확인하시기 바랍니다. 혹시 관련하여 문의사항이 있다면 (서울) 02-2287-6456, (천안) 041-550-5508로 연락주시길 바랍니다.
+
+학생들의 학업진행에 이 글이 많은 도움이 될 수 있기를 바랍니다.
+
+감사합니다. 
+
+상명대학교 교육혁신추진팀
+"""
+        return {"result": demo_email}
+
+    
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
@@ -1590,6 +1612,7 @@ async def expand(request: Request):
     )
     message = response.choices[0].message.content
     return {"result": message}
+
 
 @app.post("/promptAdd")
 async def expand(request: Request):
