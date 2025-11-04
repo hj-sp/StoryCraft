@@ -44,6 +44,7 @@ from pptx import Presentation
 from openpyxl import load_workbook
 import olefile
 import chardet
+import asyncio
 
 try:
     import kss
@@ -1575,14 +1576,12 @@ async def editorGrammar(content: TextInput):
 
 @app.post("/promptChange")
 async def prompt_change(request: Request):
-    body = await request.json()
+    body    = await request.json()
     content = (body.get('content') or "").strip()
     prompt  = (body.get('prompt')  or "").strip()
     norm    = re.sub(r"\s+", " ", prompt).lower()  # 공백/대소문자 정규화
 
-    # 1) 예시 사전 (우선순위 순서대로 나열)
     EXAMPLES = [
-        # 교수님 메일
         (r"(교수님|교수|prof|이메일|메일)", """제목: 상명대학교 교육혁신추진팀에서 진행하는 핵심역량 진단 시행 안내
 
 안녕하십니까 교수님,
@@ -1601,10 +1600,9 @@ async def prompt_change(request: Request):
 
 상명대학교 교육혁신추진팀
 """),
-        # 가정통신문
-        (r"(가정통신문|가정 통신문|가정-통신문)", """가 정 통 신 문
+        (r"(가정통신문|가정 통신문|가정-통신문)", """11월 가정통신문
 
-제목: 추운 겨울, 건강한 생활을 위한 운동의 중요성
+추운 겨울, 건강한 생활을 위한 운동의 중요성
 
 학부모님 안녕하십니까?
 어느덧 찬바람이 불고 기온이 내려가는 겨울이 찾아왔습니다.
@@ -1623,14 +1621,15 @@ async def prompt_change(request: Request):
 """),
     ]
 
-    # 2) 예시 매칭 (가장 먼저 일치하는 것을 반환)
     for pattern, example_text in EXAMPLES:
         if re.search(pattern, norm):
-            print(f"[promptChange] DEMO HIT → pattern={pattern}, prompt='{prompt[:80]}...'")
+            # ✅ 예시 응답일 때만 2초 지연
+            await asyncio.sleep(2)
+            print(f"[promptChange] DEMO HIT → {pattern}")
             return {"result": example_text}
 
-    # 3) 예시가 아니면 GPT 호출 (기존 동작)
-    print(f"[promptChange] GPT CALL → prompt='{prompt[:80]}...'")
+    # 예시가 아니면 즉시 GPT 호출
+    print(f"[promptChange] GPT CALL → {prompt[:80]}...")
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
@@ -1640,7 +1639,6 @@ async def prompt_change(request: Request):
     )
     message = response.choices[0].message.content
     return {"result": message}
-
 
 @app.post("/promptAdd")
 async def expand(request: Request):
