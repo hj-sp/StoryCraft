@@ -3570,46 +3570,34 @@ function getQuillSelectionOrAll() {
 }
 
 function getQuillSelectionOrAll2() {
-  const sel = quill2.getSelection(true);
-  
-  const normalize = (s) => (s || '').replace(/\r\n/g, '\n');
+    const sel = quill2.getSelection(true);
+    if (sel && sel.length > 0) {
+        const text = quill2.getText(sel.index, sel.length);
+        return {
+            text,
+            isAll: false,
+            apply(out) {
+                const attrs = quill2.getFormat(
+                    sel.index,
+                    Math.max(sel.length, 1)
+                );
+                quill2.deleteText(sel.index, sel.length, 'user');
+                quill2.insertText(sel.index, out, attrs, 'user');
+                quill2.setSelection(sel.index + out.length, 0, 'silent');
+            },
+        };
+    }
 
-  if (sel && sel.length > 0) {
-    const text = quill2.getText(sel.index, sel.length);
+    const len = quill2.getLength();
+    const text = quill2.getText(0, len);
     return {
-      text,
-      isAll: false,
-      apply(out) {
-      
-        const cleaned = normalize(out);
-        const attrs = quill2.getFormat(sel.index, Math.max(sel.length, 1));
-        quill2.deleteText(sel.index, sel.length, 'user');
-        quill2.insertText(sel.index, cleaned, attrs, 'user');
-        quill2.setSelection(sel.index + cleaned.length, 0, 'silent');
-      },
+        text,
+        isAll: true,
+        apply(out) {
+            quill2.setText(out);
+        },
     };
-  }
-
-  const len = quill2.getLength();
-  const text = quill2.getText(0, len);
-  return {
-    text,
-    isAll: true,
-    apply(out) {
-
-      const cleaned = (out ?? '').replace(/\r\n/g, '\n');
-
-      const delta = quill2.clipboard.convert({ text: cleaned });
-
-      quill2.setContents(delta, 'user');
-
-      
-      const lenAfter = quill2.getLength();
-      quill2.setSelection(lenAfter - 1, 0, 'silent');
-    },
-  };
 }
-
 
 async function postJSON(url, payload) {
     const res = await fetch(url, {
