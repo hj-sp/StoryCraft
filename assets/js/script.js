@@ -3517,6 +3517,15 @@ async function mockGenerate({ task, tone, length, extra, text }) {
     return `재작성(${lens}/${tone}${extra ? `, +${extra}` : ''})\n\n${text}`;
 }
 
+function replaceSelectionPreservingAttrs(q, sel, out) {
+  // sel: q.getSelection(true) 결과
+  const attrs = q.getFormat(sel.index, Math.max(sel.length, 1));
+  q.deleteText(sel.index, sel.length, 'user');
+  // out의 줄바꿈은 그대로 \n 로 삽입 (Quill이 단락으로 처리)
+  q.insertText(sel.index, out.replace(/\r\n/g, '\n'), attrs, 'user');
+  q.setSelection(sel.index + out.length, 0, 'silent');
+}
+
 function getQuillSelectionOrAll() {
     const q = window.quill;
     if (q && typeof q.getSelection === 'function') {
@@ -3561,34 +3570,46 @@ function getQuillSelectionOrAll() {
 }
 
 function getQuillSelectionOrAll2() {
-    const sel = quill2.getSelection(true);
-    if (sel && sel.length > 0) {
-        const text = quill2.getText(sel.index, sel.length);
-        return {
-            text,
-            isAll: false,
-            apply(out) {
-                const attrs = quill2.getFormat(
-                    sel.index,
-                    Math.max(sel.length, 1)
-                );
-                quill2.deleteText(sel.index, sel.length, 'user');
-                quill2.insertText(sel.index, out, attrs, 'user');
-                quill2.setSelection(sel.index + out.length, 0, 'silent');
-            },
-        };
-    }
+  const sel = quill2.getSelection(true);
+  
+  const normalize = (s) => (s || '').replace(/\r\n/g, '\n');
 
-    const len = quill2.getLength();
-    const text = quill2.getText(0, len);
+  if (sel && sel.length > 0) {
+    const text = quill2.getText(sel.index, sel.length);
     return {
-        text,
-        isAll: true,
-        apply(out) {
-            quill2.setText(out);
-        },
+      text,
+      isAll: false,
+      apply(out) {
+      
+        const cleaned = normalize(out);
+        const attrs = quill2.getFormat(sel.index, Math.max(sel.length, 1));
+        quill2.deleteText(sel.index, sel.length, 'user');
+        quill2.insertText(sel.index, cleaned, attrs, 'user');
+        quill2.setSelection(sel.index + cleaned.length, 0, 'silent');
+      },
     };
+  }
+
+  const len = quill2.getLength();
+  const text = quill2.getText(0, len);
+  return {
+    text,
+    isAll: true,
+    apply(out) {
+
+      const cleaned = (out ?? '').replace(/\r\n/g, '\n');
+
+      const delta = quill2.clipboard.convert({ text: cleaned });
+
+      quill2.setContents(delta, 'user');
+
+      
+      const lenAfter = quill2.getLength();
+      quill2.setSelection(lenAfter - 1, 0, 'silent');
+    },
+  };
 }
+
 
 async function postJSON(url, payload) {
     const res = await fetch(url, {
