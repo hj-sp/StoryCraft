@@ -3517,15 +3517,6 @@ async function mockGenerate({ task, tone, length, extra, text }) {
     return `재작성(${lens}/${tone}${extra ? `, +${extra}` : ''})\n\n${text}`;
 }
 
-function replaceSelectionPreservingAttrs(q, sel, out) {
-  // sel: q.getSelection(true) 결과
-  const attrs = q.getFormat(sel.index, Math.max(sel.length, 1));
-  q.deleteText(sel.index, sel.length, 'user');
-  // out의 줄바꿈은 그대로 \n 로 삽입 (Quill이 단락으로 처리)
-  q.insertText(sel.index, out.replace(/\r\n/g, '\n'), attrs, 'user');
-  q.setSelection(sel.index + out.length, 0, 'silent');
-}
-
 function getQuillSelectionOrAll() {
     const q = window.quill;
     if (q && typeof q.getSelection === 'function') {
