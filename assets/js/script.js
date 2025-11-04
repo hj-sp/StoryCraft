@@ -201,40 +201,6 @@ function getPanelTipText(key) {
     return map[key] || '이 기능에 대한 설명이 없습니다.';
 }
 
-function replaceSelectionPreservingAttrs(q, sel, out) {
-  // sel: q.getSelection(true) 결과
-  const attrs = q.getFormat(sel.index, Math.max(sel.length, 1));
-  q.deleteText(sel.index, sel.length, 'user');
-  // out의 줄바꿈은 그대로 \n 로 삽입 (Quill이 단락으로 처리)
-  q.insertText(sel.index, out.replace(/\r\n/g, '\n'), attrs, 'user');
-  q.setSelection(sel.index + out.length, 0, 'silent');
-}
-
-// 안전하게 plain text를 HTML처럼 보이게 그립니다(줄바꿈 유지).
-function renderPlainText(el, text) {
-  if (!el) return;
-  const safe = (text ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); // escape
-  el.innerHTML = `<div style="white-space:pre-wrap;">${safe}</div>`;
-}
-
-function replaceSelectionPreservingAttrs(q, sel, out) {
-  // sel: q.getSelection(true) 결과
-  const attrs = q.getFormat(sel.index, Math.max(sel.length, 1));
-  q.deleteText(sel.index, sel.length, 'user');
-  // out의 줄바꿈은 그대로 \n 로 삽입 (Quill이 단락으로 처리)
-  q.insertText(sel.index, out.replace(/\r\n/g, '\n'), attrs, 'user');
-  q.setSelection(sel.index + out.length, 0, 'silent');
-}
-
-// 안전하게 plain text를 HTML처럼 보이게 그립니다(줄바꿈 유지).
-function renderPlainText(el, text) {
-  if (!el) return;
-  const safe = (text ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); // escape
-  el.innerHTML = `<div style="white-space:pre-wrap;">${safe}</div>`;
-}
-
 // ===== 프롬프트 스코프 컨트롤 강제 마운트 유틸 =====
 function ensurePromptScopeControls() {
     const drawer = document.getElementById('scDrawer');
@@ -1444,13 +1410,11 @@ async function applyTranslation() {
         const data = await response.json();
 
         if (data.result) {
-            renderPlainText(resultBox, data.result);
-            window.lastExtractedText = String(data.result);
-
+            resultBox.innerText = data.result;
             const pdfBtn = document.getElementById('pdfDownloadBtn');
             if (pdfBtn) {
                 pdfBtn.onclick = function () {
-                    saveAsPDF(resultBox, '번역.pdf');
+                    saveAsPDF(data.result, '번역.pdf');
                 };
             }
         } else if (data.error) {
@@ -1548,9 +1512,9 @@ async function handlePdfScanAndProcess({
                 body: fd,
             });
             const js = await res.json();
-            extractedText = (js.text || js.result || '').toString().replace(/\r\n/g, '\n');
+            extractedText = (js.text || js.result || '').toString();
         } else {
-            extractedText = (await extractTextFromAnyFile(file)).replace(/\r\n/g, '\n');
+            extractedText = await extractTextFromAnyFile(file); // ← 여기서 전역 함수 사용
         }
         window.lastExtractedText = extractedText;
     }
@@ -1563,7 +1527,7 @@ async function handlePdfScanAndProcess({
         let extractedText = '';
 
         if (lastExtractedText && !file) {
-            extractedText = lastExtractedText.replace(/\r\n/g, '\n');
+            extractedText = lastExtractedText;
         } else if (file) {
             if (isImageFile(file)) {
                 const fd = new FormData();
@@ -1579,10 +1543,10 @@ async function handlePdfScanAndProcess({
                     );
                 }
                 const js = await res.json();
-                extractedText = (js.text || js.result || '').toString().replace(/\r\n/g, '\n');
+                extractedText = (js.text || js.result || '').toString();
             } else {
                 const text = await extractTextFromAnyFile(file); // 문서 → /fileScan
-                extractedText = (text || '[텍스트를 추출하지 못했습니다]').replace(/\r\n/g, '\n');
+                extractedText = text || '[텍스트를 추출하지 못했습니다]';
             }
             lastExtractedText = extractedText;
         } else {
@@ -1614,7 +1578,7 @@ async function handlePdfScanAndProcess({
         resultArea.innerHTML = '';
 
         if (resultText) {
-            renderPlainText(resultArea, resultText);
+            resultArea.innerHTML = `<p style="white-space: pre-wrap;">${resultText}</p>`;
 
             let filename = 'PDF_SCAN_결과.pdf';
             switch (apiEndpoint) {
@@ -1640,7 +1604,6 @@ async function handlePdfScanAndProcess({
                     filename = '스캔_번역.pdf';
                     break;
             }
-            window.lastExtractedText = String(resultText);
 
             const pdfBtn = document.getElementById('pdfDownloadBtn');
             if (pdfBtn) {
@@ -3552,6 +3515,15 @@ async function mockGenerate({ task, tone, length, extra, text }) {
         }`;
     if (task === 'translate') return `[영문 번역 샘플/${tone}] ${text}`;
     return `재작성(${lens}/${tone}${extra ? `, +${extra}` : ''})\n\n${text}`;
+}
+
+function replaceSelectionPreservingAttrs(q, sel, out) {
+  // sel: q.getSelection(true) 결과
+  const attrs = q.getFormat(sel.index, Math.max(sel.length, 1));
+  q.deleteText(sel.index, sel.length, 'user');
+  // out의 줄바꿈은 그대로 \n 로 삽입 (Quill이 단락으로 처리)
+  q.insertText(sel.index, out.replace(/\r\n/g, '\n'), attrs, 'user');
+  q.setSelection(sel.index + out.length, 0, 'silent');
 }
 
 function getQuillSelectionOrAll() {
