@@ -1574,15 +1574,16 @@ async def editorGrammar(content: TextInput):
     }
 
 @app.post("/promptChange")
-async def expand(request: Request):
+async def prompt_change(request: Request):
     body = await request.json()
-    content = body.get('content', '')
-    prompt = body.get('prompt', '').strip()
+    content = (body.get('content') or "").strip()
+    prompt  = (body.get('prompt')  or "").strip()
+    norm    = re.sub(r"\s+", " ", prompt).lower()  # 공백/대소문자 정규화
 
-    # ✅ 프롬프트가 "교수님께 보낼 이메일 형식으로 작성" 포함 시 즉시 반환
-    if "교수님" in prompt and "이메일" in prompt:
-        demo_email = """\
-제목: 상명대학교 교육혁신추진팀에서 진행하는 핵심역량 진단 시행 안내
+    # 1) 예시 사전 (우선순위 순서대로 나열)
+    EXAMPLES = [
+        # 교수님 메일
+        (r"(교수님|교수|prof|이메일|메일)", """제목: 상명대학교 교육혁신추진팀에서 진행하는 핵심역량 진단 시행 안내
 
 안녕하십니까 교수님,
 
@@ -1599,10 +1600,37 @@ async def expand(request: Request):
 감사합니다. 
 
 상명대학교 교육혁신추진팀
-"""
-        return {"result": demo_email}
+"""),
+        # 가정통신문
+        (r"(가정통신문|가정 통신문|가정-통신문)", """가 정 통 신 문
 
-    
+제목: 추운 겨울, 건강한 생활을 위한 운동의 중요성
+
+학부모님 안녕하십니까?
+어느덧 찬바람이 불고 기온이 내려가는 겨울이 찾아왔습니다.
+추운 날씨로 인해 야외활동이 줄어드는 시기이지만, 규칙적인 운동 습관은 여전히 우리 아이들의 건강을 지키는 데 매우 중요합니다.
+
+운동은 신체를 튼튼하게 할 뿐 아니라 정신적인 안정과 긍정적인 에너지를 유지하는 데에도 큰 도움이 됩니다. 특히 가벼운 실내 유산소 운동이나 스트레칭은 추운 날씨 속에서도 쉽게 실천할 수 있으며, 스트레스 완화, 면역력 강화, 수면의 질 향상 등에 효과적입니다.
+
+하루 30분 정도의 가벼운 운동만으로도 충분히 건강을 지킬 수 있습니다.
+무리하지 않고 자신의 체력에 맞는 수준으로 꾸준히 실천하는 것이 가장 중요합니다. 가족이 함께 실내에서 몸을 풀거나, 주말에 가벼운 산책을 하는 등 운동을 일상의 즐거운 습관으로 만들어 주시길 바랍니다.
+
+추운 계절일수록 몸과 마음이 움츠러들기 쉽습니다.
+가정에서도 자녀가 활기차고 건강한 겨울을 보낼 수 있도록 따뜻한 관심과 격려 부탁드립니다.
+
+감사합니다.
+○○초등학교장 (인)
+"""),
+    ]
+
+    # 2) 예시 매칭 (가장 먼저 일치하는 것을 반환)
+    for pattern, example_text in EXAMPLES:
+        if re.search(pattern, norm):
+            print(f"[promptChange] DEMO HIT → pattern={pattern}, prompt='{prompt[:80]}...'")
+            return {"result": example_text}
+
+    # 3) 예시가 아니면 GPT 호출 (기존 동작)
+    print(f"[promptChange] GPT CALL → prompt='{prompt[:80]}...'")
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
